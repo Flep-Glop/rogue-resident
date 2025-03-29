@@ -1,216 +1,585 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useAppSelector, useAppDispatch } from '@/lib/redux/hooks'
-import { 
-  startChallenge, 
-  advanceStage, 
-  recordResponse, 
-  setOverallGrade 
-} from '@/lib/redux/slices/challenge-slice'
-import { ChallengeStage } from '@/lib/types/challenge-types'
+import React, { useEffect, useState } from 'react';
+import { useNode, useChallenge, useGame } from '@/lib/hooks';
+import { ChallengeStage } from '@/lib/types/challenge-types';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { IntroductionStage } from './challenge-stages/introduction-stage';
+import { ConceptExplanationStage } from './challenge-stages/concept-explanation-stage';
+import { VisualAidStage } from './challenge-stages/visual-aid-stage';
+import { QuestionHandlingStage } from './challenge-stages/question-handling-stage';
+import { OutcomeStage } from './challenge-stages/outcome-stage';
 
-// This is a placeholder component that would be structured similarly to ClinicalNode
-// In a full implementation, Educational challenges would have their own specific stages and components
-
-export default function EducationalNode() {
-  const dispatch = useAppDispatch()
-  const nodeState = useAppSelector(state => state.node)
-  const challenge = useAppSelector(state => state.challenge)
-  
-  // Placeholder for a simple challenge - would be fetched from backend in real implementation
-  const [educationalChallenge, setEducationalChallenge] = useState({
-    id: 'edu-01',
-    title: 'Radiation Biology Basics',
-    description: 'Teach medical students about the fundamentals of radiation biology',
-    stages: ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'],
-    stageNames: {
-      'introduction': 'Teaching Scenario Introduction',
-      'stage1': 'Concept Explanation',
-      'stage2': 'Visual Aid Creation',
-      'stage3': 'Question Handling',
-      'outcome': 'Knowledge Assessment & Feedback'
+// Sample educational challenge data
+const sampleEducationalChallenge = {
+  id: 'educational-001',
+  title: 'Radiation Biology Basics Lecture',
+  description: 'Prepare and deliver a lecture on radiation biology basics for first-year medical students.',
+  difficulty: 'normal',
+  audience: 'First-year medical students with minimal physics background',
+  topic: 'Radiation Biology Basics',
+  learningObjectives: [
+    'Understand the basic mechanisms of radiation damage to DNA',
+    'Differentiate between direct and indirect effects of radiation',
+    'Recognize the time course of radiation effects',
+    'Explain the concept of fractionation in radiation therapy'
+  ],
+  stages: {
+    conceptExplanation: {
+      approaches: [
+        { id: 'approach-1', name: 'Technical: Begin with detailed physics of energy deposition', isCorrect: false },
+        { id: 'approach-2', name: 'Visual: Use analogies and diagrams to illustrate concepts', isCorrect: true },
+        { id: 'approach-3', name: 'Clinical: Connect concepts to patient outcomes and treatments', isCorrect: false }
+      ],
+      selectedApproach: null,
+      correctReason: 'Visual approaches with analogies and diagrams are most effective for beginners learning complex physics concepts.'
+    },
+    visualAid: {
+      options: [
+        { id: 'visual-1', name: 'Complex mathematical formulas', isEffective: false },
+        { id: 'visual-2', name: 'DNA damage illustration with radiation tracks', isEffective: true },
+        { id: 'visual-3', name: 'Detailed radiobiological survival curves', isEffective: false },
+        { id: 'visual-4', name: 'Interactive comparison of radiation types', isEffective: true }
+      ],
+      selectedOptions: [],
+      correctMinimum: 2
+    },
+    questionHandling: {
+      questions: [
+        {
+          id: 'q1',
+          question: 'Why do we use fractionation in radiation therapy?',
+          answers: [
+            { id: 'a1', text: 'To reduce machine workload', isCorrect: false },
+            { id: 'a2', text: 'To allow normal tissue recovery while tumor cells remain more vulnerable', isCorrect: true },
+            { id: 'a3', text: 'To give patients breaks between treatments', isCorrect: false }
+          ],
+          selectedAnswer: null
+        },
+        {
+          id: 'q2',
+          question: 'What is the difference between direct and indirect DNA damage?',
+          answers: [
+            { id: 'a1', text: 'Direct damage occurs immediately, indirect damage occurs later', isCorrect: false },
+            { id: 'a2', text: 'Direct damage affects DNA bases, indirect damage affects the backbone', isCorrect: false },
+            { id: 'a3', text: 'Direct damage is from radiation hitting DNA directly, indirect damage is from free radicals', isCorrect: true }
+          ],
+          selectedAnswer: null
+        }
+      ]
     }
-  })
+  },
+  rewards: [
+    { type: 'insight', value: 60 },
+    { type: 'researchPoints', value: 4 }
+  ]
+};
+
+export function EducationalNode() {
+  const [error, setError] = useState<Error | null>(null);
+  const [loading, setLoading] = useState(false);
   
-  // Initialize the challenge
+  // Use custom hooks
+  const { nodeData, updateData, interactionStage, setStage, completeInteraction } = useNode();
+  const { startChallenge, submitResponse, setGrade, completeChallenge, isActive } = useChallenge();
+  const { addInsight, addScore } = useGame();
+  
+  // Initialize challenge data if not set
   useEffect(() => {
-    if (nodeState.isNodeActive && !challenge.currentChallengeId) {
-      dispatch(startChallenge({
-        id: educationalChallenge.id,
-        type: 'educational',
-        totalStages: educationalChallenge.stages.length
-      }))
+    try {
+      setLoading(true);
+      
+      if (!nodeData || !nodeData.challenge) {
+        // Update node data with challenge info
+        updateData({
+          challenge: sampleEducationalChallenge
+        });
+        
+        // Start the challenge
+        startChallenge({
+          id: sampleEducationalChallenge.id,
+          type: 'educational',
+          totalStages: 5,
+          title: sampleEducationalChallenge.title,
+          description: sampleEducationalChallenge.description,
+          difficulty: 'normal'
+        });
+      }
+    } catch (err) {
+      console.error('Error initializing educational challenge:', err);
+      setError(err instanceof Error ? err : new Error('Failed to initialize challenge'));
+    } finally {
+      setLoading(false);
     }
-  }, [nodeState.isNodeActive, challenge.currentChallengeId, dispatch, educationalChallenge.id])
+  }, [nodeData, updateData, startChallenge]);
   
-  // Handle stage advancement
-  const handleAdvanceStage = (nextStage: ChallengeStage, response?: any) => {
-    // Record response if provided
-    if (response) {
-      dispatch(recordResponse({
-        stage: challenge.currentStage || 'introduction',
-        response
-      }))
+  // Handle stage navigation
+  const goToNextStage = () => {
+    const stageOrder: ChallengeStage[] = ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
+    const currentIndex = stageOrder.indexOf(interactionStage as ChallengeStage);
+    
+    if (currentIndex < stageOrder.length - 1) {
+      setStage(stageOrder[currentIndex + 1]);
+    } else {
+      // Last stage - complete the node
+      completeNode();
+    }
+  };
+  
+  const goToPreviousStage = () => {
+    const stageOrder: ChallengeStage[] = ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
+    const currentIndex = stageOrder.indexOf(interactionStage as ChallengeStage);
+    
+    if (currentIndex > 0) {
+      setStage(stageOrder[currentIndex - 1]);
+    }
+  };
+  
+  // Complete the node and give rewards
+  const completeNode = () => {
+    if (nodeData?.challenge) {
+      try {
+        // Award rewards
+        nodeData.challenge.rewards.forEach(reward => {
+          if (reward.type === 'insight') {
+            addInsight(reward.value);
+          } else if (reward.type === 'researchPoints') {
+            addScore(reward.value);
+          }
+        });
+        
+        // Calculate grade based on performance
+        const performanceScore = calculatePerformanceScore();
+        let grade: 'S' | 'A' | 'B' | 'C' | 'F' = 'C';
+        
+        if (performanceScore >= 90) grade = 'S';
+        else if (performanceScore >= 80) grade = 'A';
+        else if (performanceScore >= 70) grade = 'B';
+        else if (performanceScore >= 50) grade = 'C';
+        else grade = 'F';
+        
+        // Mark challenge as complete with calculated grade
+        completeChallenge({
+          grade,
+          rewards: nodeData.challenge.rewards
+        });
+        
+        // Mark the node interaction as completed
+        completeInteraction(true);
+      } catch (err) {
+        console.error('Error completing educational node:', err);
+        setError(err instanceof Error ? err : new Error('Failed to complete node'));
+      }
+    }
+  };
+  
+  // Calculate performance score based on answers
+  const calculatePerformanceScore = (): number => {
+    if (!nodeData?.challenge) return 0;
+    
+    const challenge = nodeData.challenge;
+    let score = 0;
+    let totalPoints = 0;
+    
+    // Concept explanation scoring
+    if (challenge.stages.conceptExplanation.selectedApproach) {
+      totalPoints += 30;
+      const approach = challenge.stages.conceptExplanation.approaches.find(
+        a => a.id === challenge.stages.conceptExplanation.selectedApproach
+      );
+      if (approach?.isCorrect) score += 30;
     }
     
-    // Move to next stage
-    dispatch(advanceStage(nextStage))
-    
-    // If we're advancing to the outcome, calculate overall grade
-    if (nextStage === 'outcome') {
-      // This would normally be a more complex calculation based on all responses
-      dispatch(setOverallGrade('S'))
+    // Visual aid scoring
+    if (challenge.stages.visualAid.selectedOptions.length > 0) {
+      totalPoints += 40;
+      const correctOptionsCount = challenge.stages.visualAid.options
+        .filter(o => challenge.stages.visualAid.selectedOptions.includes(o.id) && o.isEffective)
+        .length;
+      score += (correctOptionsCount / challenge.stages.visualAid.correctMinimum) * 40;
     }
+    
+    // Question handling scoring
+    if (challenge.stages.questionHandling.questions.some(q => q.selectedAnswer)) {
+      totalPoints += 30;
+      const correctAnswersCount = challenge.stages.questionHandling.questions
+        .filter(q => {
+          if (!q.selectedAnswer) return false;
+          const answer = q.answers.find(a => a.id === q.selectedAnswer);
+          return answer?.isCorrect;
+        })
+        .length;
+      score += (correctAnswersCount / challenge.stages.questionHandling.questions.length) * 30;
+    }
+    
+    return totalPoints === 0 ? 0 : (score / totalPoints) * 100;
+  };
+  
+  // Handle answer submission
+  const handleSubmitAnswer = (stage: string, answer: any) => {
+    try {
+      submitResponse(stage as ChallengeStage, answer);
+      
+      // Update node data with the answer
+      if (nodeData?.challenge) {
+        const updatedChallenge = { ...nodeData.challenge };
+        if (stage === 'stage1' && updatedChallenge.stages.conceptExplanation) {
+          updatedChallenge.stages.conceptExplanation.selectedApproach = answer;
+        } else if (stage === 'stage2' && updatedChallenge.stages.visualAid) {
+          updatedChallenge.stages.visualAid.selectedOptions = answer;
+        } else if (stage === 'stage3' && updatedChallenge.stages.questionHandling) {
+          // For questions, we receive an object with questionId -> answerId mapping
+          for (const questionId in answer) {
+            const questionIndex = updatedChallenge.stages.questionHandling.questions.findIndex(q => q.id === questionId);
+            if (questionIndex >= 0) {
+              updatedChallenge.stages.questionHandling.questions[questionIndex].selectedAnswer = answer[questionId];
+            }
+          }
+        }
+        
+        updateData({ challenge: updatedChallenge });
+      }
+    } catch (err) {
+      console.error('Error submitting answer:', err);
+      setError(err instanceof Error ? err : new Error('Failed to submit answer'));
+    }
+  };
+  
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-educational"></div>
+        <span className="ml-3 text-educational">Loading challenge...</span>
+      </div>
+    );
   }
   
-  // Progress indicator
-  const currentStageIndex = challenge.currentStage 
-    ? educationalChallenge.stages.indexOf(challenge.currentStage) 
-    : 0
-  
-  const progressPercentage = (currentStageIndex / (educationalChallenge.stages.length - 1)) * 100
-  
-  // Placeholder implementation
-  return (
-    <div className="max-w-4xl mx-auto">
-      {/* Stage navigation and progress */}
-      <div className="mb-6">
-        <div className="flex justify-between mb-2">
-          <span className="text-sm text-slate-400">
-            Stage: {challenge.currentStage && educationalChallenge.stageNames[challenge.currentStage]}
-          </span>
-          <span className="text-sm text-slate-400">
-            {currentStageIndex + 1} of {educationalChallenge.stages.length}
-          </span>
-        </div>
-        <div className="w-full bg-slate-700 rounded-full h-2.5">
-          <div 
-            className="bg-educational h-2.5 rounded-full transition-all duration-500" 
-            style={{ width: `${progressPercentage}%` }}
-          ></div>
-        </div>
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-center">
+        <h3 className="text-lg font-bold text-red-700 mb-2">Error</h3>
+        <p className="text-red-600 mb-4">{error.message}</p>
+        <Button variant="destructive" onClick={() => setError(null)}>
+          Try Again
+        </Button>
       </div>
+    );
+  }
+  
+  // If challenge isn't active yet, show a placeholder
+  if (!isActive() || !nodeData?.challenge) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-lg text-gray-600">
+          Challenge not available. Please try again.
+        </p>
+      </div>
+    );
+  }
+  
+  // Calculate progress based on current stage
+  const calculateProgress = () => {
+    const stages = ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
+    const currentIndex = stages.indexOf(interactionStage);
+    return ((currentIndex) / (stages.length - 1)) * 100;
+  };
+  
+  // Render the current stage
+  const renderStage = () => {
+    if (!nodeData?.challenge) {
+      return <div className="text-center py-8">Loading challenge data...</div>;
+    }
+    
+    const challenge = nodeData.challenge;
+    
+    switch (interactionStage) {
+      case 'introduction':
+        return (
+          <IntroductionStage
+            title={challenge.title}
+            description={challenge.description}
+            audience={challenge.audience}
+            onContinue={goToNextStage}
+          />
+        );
       
-      {/* Placeholder content */}
-      <div className="bg-slate-800 rounded-lg shadow-lg overflow-hidden p-8">
-        <h3 className="text-xl font-pixel text-educational mb-4">{educationalChallenge.title}</h3>
-        <p className="text-slate-300 mb-6">{educationalChallenge.description}</p>
-        
-        {challenge.currentStage === 'introduction' && (
-          <div className="space-y-4">
-            <div className="bg-slate-700 p-4 rounded-lg">
-              <h4 className="text-educational-accent font-pixel mb-2">Teaching Scenario</h4>
-              <p className="text-slate-300">
-                A group of first-year medical students needs an introduction to radiation biology. 
-                This is their first exposure to the topic, so you need to make complex concepts 
-                accessible while maintaining scientific accuracy.
-              </p>
-            </div>
-            
-            <div className="bg-slate-700 p-4 rounded-lg mt-4">
-              <h4 className="text-educational-accent font-pixel mb-2">Learning Objectives</h4>
-              <ul className="list-disc list-inside text-slate-300 space-y-2">
-                <li>Understand the basic mechanisms of radiation damage to DNA</li>
-                <li>Differentiate between direct and indirect effects of radiation</li>
-                <li>Recognize the time course of radiation effects</li>
-                <li>Explain the concept of fractionation in radiation therapy</li>
-              </ul>
-            </div>
-            
-            <div className="mt-6">
-              <button
-                onClick={() => handleAdvanceStage('stage1')}
-                className="btn-pixel bg-educational border-educational-accent px-6 py-2 text-white font-pixel"
-              >
-                Begin Teaching
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {challenge.currentStage === 'stage1' && (
-          <div className="space-y-4">
-            <p className="text-slate-300">
-              Explain DNA damage mechanisms to the students.
+      case 'stage1': // Concept Explanation
+        return (
+          <ConceptExplanationStage
+            data={challenge.stages.conceptExplanation}
+            learningObjectives={challenge.learningObjectives}
+            onBack={goToPreviousStage}
+            onContinue={(selectedApproach) => {
+              handleSubmitAnswer('stage1', selectedApproach);
+              goToNextStage();
+            }}
+          />
+        );
+      
+      case 'stage2': // Visual Aid Creation
+        return (
+          <VisualAidStage
+            data={challenge.stages.visualAid}
+            onBack={goToPreviousStage}
+            onContinue={(selectedOptions) => {
+              handleSubmitAnswer('stage2', selectedOptions);
+              goToNextStage();
+            }}
+          />
+        );
+      
+      case 'stage3': // Question Handling
+        return (
+          <QuestionHandlingStage
+            data={challenge.stages.questionHandling}
+            onBack={goToPreviousStage}
+            onContinue={(answers) => {
+              handleSubmitAnswer('stage3', answers);
+              goToNextStage();
+            }}
+          />
+        );
+      
+      case 'outcome':
+        return (
+          <OutcomeStage
+            title="Educational Challenge Complete"
+            grade={calculatePerformanceScore() >= 80 ? 'A' : calculatePerformanceScore() >= 70 ? 'B' : 'C'}
+            feedback="The students responded well to your teaching approach. Your visual aids were particularly effective."
+            rewards={challenge.rewards}
+            onComplete={completeNode}
+          />
+        );
+      
+      default:
+        return (
+          <div className="text-center py-8">
+            <p className="text-lg text-gray-600 mb-4">
+              Unknown stage or stage not implemented.
             </p>
-            {/* This would be a more interactive component in a real implementation */}
-            <div className="bg-slate-700 p-4 rounded-lg">
-              <p className="text-slate-300">Select your teaching approach:</p>
-              <div className="mt-4 space-y-2">
-                <div className="bg-slate-600 p-3 rounded cursor-pointer hover:bg-slate-500">
-                  Technical: Begin with detailed physics of energy deposition
-                </div>
-                <div className="bg-slate-600 p-3 rounded cursor-pointer hover:bg-slate-500">
-                  Visual: Use analogies and diagrams to illustrate concepts
-                </div>
-                <div className="bg-slate-600 p-3 rounded cursor-pointer hover:bg-slate-500">
-                  Clinical: Connect concepts to patient outcomes and treatments
-                </div>
-              </div>
-            </div>
-            <div className="mt-6">
-              <button
-                onClick={() => handleAdvanceStage('stage2', { approach: 'Visual' })}
-                className="btn-pixel bg-educational border-educational-accent px-6 py-2 text-white font-pixel"
-              >
-                Continue to Visual Aids
-              </button>
-            </div>
+            <Button variant="primary" onClick={goToNextStage}>
+              Continue
+            </Button>
           </div>
-        )}
+        );
+    }
+  };
+  
+  return (
+    <ErrorBoundary>
+      <div className="space-y-6">
+        {/* Progress indicator */}
+        <div className="mb-6">
+          <div className="flex justify-between mb-2">
+            <span className="text-sm text-slate-400">
+              {interactionStage === 'introduction' ? 'Introduction' : 
+               interactionStage === 'stage1' ? 'Concept Explanation' :
+               interactionStage === 'stage2' ? 'Visual Aid Creation' :
+               interactionStage === 'stage3' ? 'Question Handling' :
+               interactionStage === 'outcome' ? 'Outcome' : 'Unknown Stage'}
+            </span>
+            <span className="text-sm text-slate-400">
+              {calculateProgress().toFixed(0)}%
+            </span>
+          </div>
+          <Progress value={calculateProgress()} variant="educational" />
+        </div>
         
-        {/* Placeholder for further stages */}
-        {(challenge.currentStage === 'stage2' || challenge.currentStage === 'stage3') && (
-          <div className="space-y-4">
-            <p className="text-slate-300">
-              This stage would contain education-specific challenge content.
-            </p>
-            <div className="mt-6">
-              <button
-                onClick={() => handleAdvanceStage(
-                  challenge.currentStage === 'stage2' ? 'stage3' : 'outcome'
-                )}
-                className="btn-pixel bg-educational border-educational-accent px-6 py-2 text-white font-pixel"
-              >
-                {challenge.currentStage === 'stage2' ? 'Handle Student Questions' : 'Complete Teaching'}
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {challenge.currentStage === 'outcome' && (
-          <div className="space-y-4">
-            <div className="text-center py-4">
-              <div className="inline-block rounded-full bg-educational p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-pixel text-educational mt-4">Teaching Complete!</h3>
-              <p className="text-slate-300 mt-2">
-                The students have gained a solid understanding of radiation biology basics.
-              </p>
-            </div>
-            
-            <div className="bg-slate-700 p-4 rounded-lg text-center">
-              <p className="text-xl font-pixel text-educational-accent">Grade: {challenge.overallGrade}</p>
-              <p className="text-slate-300 mt-2">Insight Gained: {challenge.insightReward}</p>
-              {challenge.itemReward && (
-                <p className="text-slate-300 mt-2">Item Reward: Teaching Materials</p>
-              )}
-            </div>
-            
-            <div className="bg-slate-700 p-4 rounded-lg mt-4">
-              <h4 className="text-educational-accent font-pixel mb-2">Student Feedback</h4>
-              <p className="text-slate-300 italic">
-                "This was the clearest explanation of radiation biology I've ever received! 
-                The visual aids really helped me understand the complex mechanisms."
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Stage content */}
+        {renderStage()}
       </div>
-    </div>
-  )
+    </ErrorBoundary>
+  );
+}
+
+// Note: These component imports are placeholders. You'll need to implement these components.
+// Here are stub implementations for these components:
+
+function ConceptExplanationStage({ data, learningObjectives, onBack, onContinue }) {
+  const [selectedApproach, setSelectedApproach] = useState(data.selectedApproach);
+  
+  return (
+    <Card>
+      <div className="p-6 space-y-4">
+        <h3 className="text-xl font-bold">Concept Explanation</h3>
+        <p className="text-gray-600">
+          Choose the most effective approach to explain radiation biology concepts to first-year medical students:
+        </p>
+        
+        <div className="bg-gray-50 p-4 rounded-md mb-4">
+          <h4 className="font-medium mb-2">Learning Objectives:</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {learningObjectives.map((objective, index) => (
+              <li key={index} className="text-gray-700">{objective}</li>
+            ))}
+          </ul>
+        </div>
+        
+        <div className="space-y-2">
+          {data.approaches.map(approach => (
+            <div 
+              key={approach.id}
+              className={`
+                p-3 rounded-md cursor-pointer border 
+                ${selectedApproach === approach.id 
+                  ? 'border-educational bg-educational bg-opacity-10' 
+                  : 'border-gray-200 hover:border-educational'
+                }
+              `}
+              onClick={() => setSelectedApproach(approach.id)}
+            >
+              {approach.name}
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex justify-between mt-6">
+          <Button variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button 
+            variant="educational" 
+            onClick={() => onContinue(selectedApproach)}
+            disabled={!selectedApproach}
+          >
+            Continue
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function VisualAidStage({ data, onBack, onContinue }) {
+  const [selectedOptions, setSelectedOptions] = useState(data.selectedOptions || []);
+  
+  const toggleOption = (optionId) => {
+    setSelectedOptions(prev => 
+      prev.includes(optionId)
+        ? prev.filter(id => id !== optionId)
+        : [...prev, optionId]
+    );
+  };
+  
+  return (
+    <Card>
+      <div className="p-6 space-y-4">
+        <h3 className="text-xl font-bold">Visual Aid Creation</h3>
+        <p className="text-gray-600">
+          Select the visual aids that would be most effective for teaching radiation biology to first-year medical students:
+        </p>
+        
+        <div className="bg-gray-50 p-4 rounded-md mb-2">
+          <p className="text-sm text-gray-600">
+            Choose at least {data.correctMinimum} visual aids to include in your presentation.
+          </p>
+        </div>
+        
+        <div className="space-y-2">
+          {data.options.map(option => (
+            <div 
+              key={option.id}
+              className={`
+                p-3 rounded-md cursor-pointer border flex items-start
+                ${selectedOptions.includes(option.id) 
+                  ? 'border-educational bg-educational bg-opacity-10' 
+                  : 'border-gray-200 hover:border-educational'
+                }
+              `}
+              onClick={() => toggleOption(option.id)}
+            >
+              <input 
+                type="checkbox" 
+                checked={selectedOptions.includes(option.id)}
+                onChange={() => toggleOption(option.id)}
+                className="mt-1 mr-3"
+              />
+              <span>{option.name}</span>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex justify-between mt-6">
+          <Button variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button 
+            variant="educational" 
+            onClick={() => onContinue(selectedOptions)}
+            disabled={selectedOptions.length < data.correctMinimum}
+          >
+            Continue
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function QuestionHandlingStage({ data, onBack, onContinue }) {
+  const [answers, setAnswers] = useState({});
+  
+  const selectAnswer = (questionId, answerId) => {
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: answerId
+    }));
+  };
+  
+  const allQuestionsAnswered = data.questions.every(q => answers[q.id]);
+  
+  return (
+    <Card>
+      <div className="p-6 space-y-4">
+        <h3 className="text-xl font-bold">Question Handling</h3>
+        <p className="text-gray-600">
+          Students have asked the following questions. Select the best response for each:
+        </p>
+        
+        <div className="space-y-6">
+          {data.questions.map(question => (
+            <div key={question.id} className="border rounded-md p-4">
+              <h4 className="font-medium mb-3">{question.question}</h4>
+              
+              <div className="space-y-2">
+                {question.answers.map(answer => (
+                  <div 
+                    key={answer.id}
+                    className={`
+                      p-3 rounded-md cursor-pointer border 
+                      ${answers[question.id] === answer.id
+                        ? 'border-educational bg-educational bg-opacity-10' 
+                        : 'border-gray-200 hover:border-gray-300'
+                      }
+                    `}
+                    onClick={() => selectAnswer(question.id, answer.id)}
+                  >
+                    {answer.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <div className="flex justify-between mt-6">
+          <Button variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button 
+            variant="educational" 
+            onClick={() => onContinue(answers)}
+            disabled={!allQuestionsAnswered}
+          >
+            Continue
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
 }
