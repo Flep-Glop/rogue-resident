@@ -1,23 +1,30 @@
-import { Difficulty } from './game-types';
+// lib/types/map-types.ts
+import type { Difficulty } from './game-types';
 
-// Node Types
+/**
+ * Types of nodes available in the game
+ */
 export type NodeType = 
-  'clinical' | 
-  'qa' | 
-  'educational' | 
-  'storage' | // Treasure nodes
-  'vendor' |   // Shop nodes
-  'boss' |
-  'start';
+  | 'clinical' 
+  | 'qa' 
+  | 'educational' 
+  | 'storage' // Treasure nodes
+  | 'vendor'   // Shop nodes
+  | 'boss'
+  | 'start';
 
-// Node Status
+/**
+ * Possible states for a node
+ */
 export type NodeStatus = 
-  'locked' | 
-  'available' | 
-  'current' | 
-  'completed';
+  | 'locked' 
+  | 'available' 
+  | 'current' 
+  | 'completed';
 
-// Map Node Definition
+/**
+ * Represents a node in the game map
+ */
 export interface MapNode {
   id: string;
   type: NodeType;
@@ -27,26 +34,35 @@ export interface MapNode {
   description: string;
   connections: string[]; // IDs of connected nodes
   status: NodeStatus;
-  scenarioId?: string; // Reference to specific scenario data
+  scenarioId?: string;
   difficulty?: Difficulty;
   rewards?: Reward[];
 }
 
-// Map Edge Definition (for connections)
+/**
+ * Represents a connection between nodes
+ */
 export interface MapEdge {
   id: string;
   source: string;
   target: string;
+  data?: {
+    type?: 'normal' | 'special';
+  };
 }
 
-// Reward Structure
+/**
+ * Reward structure for completing nodes
+ */
 export interface Reward {
   type: 'insight' | 'health' | 'item' | 'researchPoints';
   value: number;
   itemId?: string;
 }
 
-// Map Generation Options
+/**
+ * Options for procedural map generation
+ */
 export interface MapGenerationOptions {
   difficulty: Difficulty;
   nodeCount: number;
@@ -56,7 +72,9 @@ export interface MapGenerationOptions {
   seed?: number;
 }
 
-// Generated Map Result
+/**
+ * Generated map data structure
+ */
 export interface GeneratedMap {
   nodes: MapNode[];
   edges: MapEdge[];
@@ -64,21 +82,27 @@ export interface GeneratedMap {
   bossNodeId: string;
 }
 
-// Path Structure
+/**
+ * Represents a path between nodes
+ */
 export interface Path {
   nodeIds: string[];
   length: number;
 }
 
-// Map Node Template (for generation)
+/**
+ * Template for node creation
+ */
 export interface NodeTemplate {
   type: NodeType;
   title: string;
   description: string;
-  scenarioPool?: string[]; // IDs of potential scenarios to assign
+  scenarioPool?: string[];
 }
 
-// Node Position (for layout)
+/**
+ * Position data for node layout
+ */
 export interface NodePosition {
   id: string;
   x: number;
@@ -86,7 +110,9 @@ export interface NodePosition {
   layer: number;
 }
 
-// Node Type Color Themes
+/**
+ * Color themes for different node types
+ */
 export const NodeColors: Record<NodeType, { primary: string, secondary: string, text: string }> = {
   clinical: {
     primary: '#4A90E2',

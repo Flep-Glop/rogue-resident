@@ -1,8 +1,7 @@
-// lib/hooks/index.ts
 'use client';
 
 // Redux hooks
-export * from '../redux/hooks';
+export * from './use-redux-hooks';
 
 // Game feature hooks
 export * from './use-game';

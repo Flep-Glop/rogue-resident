@@ -1,7 +1,33 @@
 // lib/types/redux-types.ts
-import { NodeType, ChallengeType, ItemType, CharacterType, GameDifficulty } from './game-types';
+import type { 
+  GameStatus, 
+  Difficulty, 
+  CharacterType, 
+  PlayerState, 
+  Ability, 
+  SaveSlot 
+} from './game-types';
+import type { 
+  MapNode, 
+  MapEdge, 
+  Reward, 
+  NodeType 
+} from './map-types';
+import type { 
+  Challenge, 
+  ChallengeType, 
+  ChallengeState, 
+  ChallengeGrade, 
+  ChallengeStage 
+} from './challenge-types';
+import type { 
+  Item, 
+  ItemEffect 
+} from './item-types';
 
-// Root state type
+/**
+ * Root Redux state
+ */
 export interface RootState {
   game: GameState;
   map: MapState;
@@ -11,40 +37,35 @@ export interface RootState {
   saveLoad: SaveLoadState;
 }
 
-// Game state
+/**
+ * Game slice state
+ */
 export interface GameState {
-  status: 'idle' | 'playing' | 'paused' | 'complete' | 'game-over';
-  difficulty: GameDifficulty;
+  status: GameStatus;
+  difficulty: Difficulty;
   player: PlayerState;
   currentFloor: number;
   floorsCompleted: number;
-  insight: number; // In-game currency
-  researchPoints: number; // Meta currency
+  insight: number;
+  researchPoints: number;
   timeElapsed: number; // In seconds
+  score: number;
+  selectedCharacterId: string | null;
+  characters: {
+    id: string;
+    type: CharacterType;
+    name: string;
+    description: string;
+    abilities: Ability[];
+  }[];
+  isGameStarted: boolean;
+  isGameOver: boolean;
+  completedRuns: number;
 }
 
-export interface PlayerState {
-  characterType: CharacterType;
-  lives: number;
-  maxLives: number;
-  abilities: Ability[];
-  stats: {
-    clinical: number;
-    technical: number;
-    educational: number;
-  };
-}
-
-export interface Ability {
-  id: string;
-  name: string;
-  description: string;
-  cooldown: number;
-  currentCooldown: number;
-  isAvailable: boolean;
-}
-
-// Map state
+/**
+ * Map slice state
+ */
 export interface MapState {
   nodes: MapNode[];
   edges: MapEdge[];
@@ -53,126 +74,78 @@ export interface MapState {
   bossNodeId: string | null;
   isGenerated: boolean;
   seed: number;
+  floorLevel: number;
+  unlockedNodeIds: string[];
 }
 
-export interface MapNode {
-  id: string;
-  type: NodeType;
-  position: { x: number; y: number };
-  data: {
-    title: string;
-    description: string;
-    status: 'locked' | 'available' | 'current' | 'completed';
-    scenarioId?: string;
-    difficulty?: 'easy' | 'normal' | 'hard';
-    rewards?: Reward[];
-  };
-}
-
-export interface MapEdge {
-  id: string;
-  source: string;
-  target: string;
-  data?: {
-    type?: 'normal' | 'special';
-  };
-}
-
-export interface Reward {
-  type: 'insight' | 'item' | 'life' | 'research-point';
-  amount?: number;
-  itemId?: string;
-}
-
-// Node state
+/**
+ * Node slice state
+ */
 export interface NodeState {
   selectedNodeId: string | null;
-  currentNodeType: NodeType | null;
+  currentNodeId: string | null;
+  nodeType: NodeType | null;
+  nodeData: any | null;
+  nodeStatus: 'locked' | 'available' | 'current' | 'completed' | null;
   nodeHistory: string[];
-  nodeInteraction: {
-    isActive: boolean;
-    currentStage: number;
-    totalStages: number;
-    completionStatus: 'none' | 'in-progress' | 'success' | 'failure';
-  };
+  isInteracting: boolean;
+  isNodeActive: boolean;
+  interactionStage: ChallengeStage | null;
 }
 
-// Challenge state
+/**
+ * Challenge slice state
+ */
 export interface ChallengeState {
-  currentChallenge: Challenge | null;
+  currentChallengeId: string | null;
+  challengeType: ChallengeType | null;
+  title: string;
+  description: string;
+  difficulty: Difficulty;
+  currentStage: number;
+  stages: {
+    id: string;
+    title: string;
+    content: any;
+    isCompleted: boolean;
+  }[];
+  userResponses: Record<string, any>;
+  overallGrade: ChallengeGrade | null;
+  insightReward: number;
+  itemReward: string | null;
+  timeRemaining: number;
+  challengeState: ChallengeState;
+  isCompleted: boolean;
+  feedback: string;
   challengeHistory: {
     nodeId: string;
     challengeId: string;
-    grade: 'none' | 'C' | 'B' | 'A' | 'S';
+    grade: ChallengeGrade | null;
   }[];
-  userAnswers: Record<string, any>;
-  grade: 'none' | 'C' | 'B' | 'A' | 'S';
-  feedback: string;
 }
 
-export interface Challenge {
-  id: string;
-  type: ChallengeType;
-  title: string;
-  description: string;
-  difficulty: 'easy' | 'normal' | 'hard';
-  stages: ChallengeStage[];
-  rewards: Reward[];
-}
-
-export interface ChallengeStage {
-  id: string;
-  type: string;
-  title: string;
-  content: any; // This will vary based on stage type
-  correctAnswers?: any; // This will vary based on stage type
-}
-
-// Inventory state
+/**
+ * Inventory slice state
+ */
 export interface InventoryState {
-  items: InventoryItem[];
-  activeItems: string[]; // IDs of equipped/active items
+  items: Item[];
+  activeItems: string[];
+  activeEffects: ItemEffect[];
   selectedItemId: string | null;
+  capacity: number;
 }
 
-export interface InventoryItem {
-  id: string;
-  type: ItemType;
-  name: string;
-  description: string;
-  rarity: 'common' | 'uncommon' | 'rare' | 'unique';
-  effects: ItemEffect[];
-  isUsable: boolean;
-  isEquippable: boolean;
-  isEquipped: boolean;
-}
-
-export interface ItemEffect {
-  type: string;
-  target: string;
-  value: number | string | boolean;
-  duration?: number; // In turns/encounters
-}
-
-// Save/Load state
+/**
+ * Save/Load slice state
+ */
 export interface SaveLoadState {
-  saveSlots: SaveSlot[];
-  currentSlot: number | null;
+  saves: SaveSlot[];
+  currentSaveId: string | null;
   isSaving: boolean;
   isLoading: boolean;
   error: string | null;
-}
-
-export interface SaveSlot {
-  id: number;
-  name: string;
-  timestamp: number;
-  thumbnailUrl?: string;
-  gameState?: GameState;
-  playerProgress?: {
-    currentFloor: number;
-    insight: number;
-    lives: number;
-    itemCount: number;
-  };
+  autoSaveEnabled: boolean;
+  showSaveMenu: boolean;
+  hasSave: boolean;
+  lastSaveTimestamp: number | null;
 }

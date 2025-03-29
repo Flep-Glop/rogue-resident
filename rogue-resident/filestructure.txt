@@ -1,121 +1,129 @@
 .
 ├── README.md
+├── __mocks__
+│   └── fileMock.js
+├── app
+│   ├── components
+│   │   ├── game
+│   │   │   ├── challenges
+│   │   │   │   ├── dose-stage.tsx
+│   │   │   │   ├── parameter-stage.tsx
+│   │   │   │   └── plan-evaluation-stage.tsx
+│   │   │   ├── character
+│   │   │   │   ├── character-card.tsx
+│   │   │   │   └── character-selection.tsx
+│   │   │   ├── game-dashboard.tsx
+│   │   │   ├── inventory
+│   │   │   │   ├── inventory-button.tsx
+│   │   │   │   ├── inventory-panel.tsx
+│   │   │   │   └── item-card.tsx
+│   │   │   ├── map
+│   │   │   │   ├── game-map.tsx
+│   │   │   │   ├── map-edge.tsx
+│   │   │   │   └── map-node.tsx
+│   │   │   ├── nodes
+│   │   │   │   ├── boss-node.tsx
+│   │   │   │   ├── clinical-node.tsx
+│   │   │   │   ├── educational-node.tsx
+│   │   │   │   ├── node-header.tsx
+│   │   │   │   ├── node-interaction.tsx
+│   │   │   │   ├── qa-node.tsx
+│   │   │   │   ├── storage-node.tsx
+│   │   │   │   └── vendor-node.tsx
+│   │   │   └── ui
+│   │   │       ├── game-hud.tsx
+│   │   │       └── save-menu.tsx
+│   │   └── ui
+│   │       ├── __tests__
+│   │       │   └── button.test.tsx
+│   │       ├── badge.tsx
+│   │       ├── button.tsx
+│   │       ├── card.tsx
+│   │       ├── error-boundary.tsx
+│   │       ├── modal.tsx
+│   │       ├── notification.tsx
+│   │       ├── progress.tsx
+│   │       └── tooltip.tsx
+│   ├── game
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── project_tree.txt
+├── eslint.config.mjs
 ├── filestructure.txt
+├── jest-config.ts
+├── jest-setup.ts
+├── lib
+│   ├── components
+│   │   └── error-boundary.tsx
+│   ├── config
+│   │   └── types
+│   ├── data
+│   │   ├── challenges.ts
+│   │   └── items.ts
+│   ├── hooks
+│   │   ├── index.ts
+│   │   ├── use-challenge.ts
+│   │   ├── use-game.ts
+│   │   ├── use-inventory.ts
+│   │   ├── use-key-press.ts
+│   │   ├── use-local-storage.ts
+│   │   ├── use-map.ts
+│   │   ├── use-media-query.ts
+│   │   ├── use-node.ts
+│   │   ├── use-redux-hooks.ts
+│   │   ├── use-save-load.ts
+│   │   └── use-timer.ts
+│   ├── providers.tsx
+│   ├── redux
+│   │   ├── hooks.ts
+│   │   ├── middleware
+│   │   │   └── game-loop.ts
+│   │   ├── slices
+│   │   │   ├── __tests__
+│   │   │   │   ├── challenge-slice.test.ts
+│   │   │   │   ├── game-slice.test.ts
+│   │   │   │   └── node-slice.test.ts
+│   │   │   ├── challenge-slice.ts
+│   │   │   ├── game-slice.ts
+│   │   │   ├── inventory-slice.ts
+│   │   │   ├── map-slice.ts
+│   │   │   ├── node-slice.ts
+│   │   │   └── save-load-slice.ts
+│   │   └── store.ts
+│   ├── types
+│   │   ├── challenge-types.ts
+│   │   ├── game-types.ts
+│   │   ├── index.ts
+│   │   ├── item-types.ts
+│   │   ├── map-types.ts
+│   │   ├── node-types.ts
+│   │   └── redux-types.ts
+│   └── utils
+│       ├── __tests__
+│       │   ├── game-utils.test.ts
+│       │   └── map-generator.test.ts
+│       ├── cn.ts
+│       ├── date-utils.ts
+│       ├── error-handlers.ts
+│       ├── game-utils.ts
+│       ├── id-generator.ts
+│       ├── inventory-utils.ts
+│       ├── item-effects.ts
+│       ├── map-generator.ts
+│       ├── node-interaction.ts
+│       ├── save-load.ts
+│       ├── test-utils.tsx
+│       └── theme-utils.ts
+├── next-env.d.ts
+├── next.config.ts
 ├── package-lock.json
-└── rogue-resident
-    ├── README.md
-    ├── __mocks__
-    │   └── fileMock.js
-    ├── app
-    │   ├── components
-    │   │   ├── game
-    │   │   │   ├── challenges
-    │   │   │   │   ├── dose-stage.tsx
-    │   │   │   │   ├── parameter-stage.tsx
-    │   │   │   │   └── plan-evaluation-stage.tsx
-    │   │   │   ├── character
-    │   │   │   │   ├── character-card.tsx
-    │   │   │   │   └── character-selection.tsx
-    │   │   │   ├── game-dashboard.tsx
-    │   │   │   ├── inventory
-    │   │   │   │   ├── inventory-button.tsx
-    │   │   │   │   ├── inventory-panel.tsx
-    │   │   │   │   └── item-card.tsx
-    │   │   │   ├── map
-    │   │   │   │   ├── game-map.tsx
-    │   │   │   │   ├── map-edge.tsx
-    │   │   │   │   └── map-node.tsx
-    │   │   │   ├── nodes
-    │   │   │   │   ├── boss-node.tsx
-    │   │   │   │   ├── clinical-node.tsx
-    │   │   │   │   ├── educational-node.tsx
-    │   │   │   │   ├── node-header.tsx
-    │   │   │   │   ├── node-interaction.tsx
-    │   │   │   │   ├── qa-node.tsx
-    │   │   │   │   ├── storage-node.tsx
-    │   │   │   │   └── vendor-node.tsx
-    │   │   │   └── ui
-    │   │   │       ├── game-hud.tsx
-    │   │   │       └── save-menu.tsx
-    │   │   └── ui
-    │   │       ├── __tests__
-    │   │       │   └── button.test.tsx
-    │   │       ├── badge.tsx
-    │   │       ├── button.tsx
-    │   │       ├── card.tsx
-    │   │       ├── error-boundary.tsx
-    │   │       ├── modal.tsx
-    │   │       ├── notification.tsx
-    │   │       ├── progress.tsx
-    │   │       └── tooltip.tsx
-    │   ├── game
-    │   │   ├── layout.tsx
-    │   │   └── page.tsx
-    │   ├── layout.tsx
-    │   ├── page.tsx
-    │   └── project_tree.txt
-    ├── eslint.config.mjs
-    ├── filestructure.txt
-    ├── jest-config.ts
-    ├── jest-setup.ts
-    ├── lib
-    │   ├── config
-    │   │   └── types
-    │   ├── hooks
-    │   │   ├── index.ts
-    │   │   ├── use-challenge.ts
-    │   │   ├── use-game-state-hook.ts
-    │   │   ├── use-game.ts
-    │   │   ├── use-inventory-hook.ts
-    │   │   ├── use-inventory.ts
-    │   │   ├── use-key-press.ts
-    │   │   ├── use-local-storage.ts
-    │   │   ├── use-map.ts
-    │   │   ├── use-media-query.ts
-    │   │   ├── use-node-interaction-hook.ts
-    │   │   ├── use-node.ts
-    │   │   ├── use-redux-hooks.ts
-    │   │   ├── use-save-load.ts
-    │   │   └── use-timer-hook.ts
-    │   ├── providers.tsx
-    │   ├── redux
-    │   │   ├── hooks.ts
-    │   │   ├── slices
-    │   │   │   ├── __tests__
-    │   │   │   │   └── game-slice.test.ts
-    │   │   │   ├── challenge-slice.ts
-    │   │   │   ├── game-slice.ts
-    │   │   │   ├── inventory-slice.ts
-    │   │   │   ├── map-slice.ts
-    │   │   │   ├── node-slice.ts
-    │   │   │   └── save-load-slice.ts
-    │   │   └── store.ts
-    │   ├── types
-    │   │   ├── challenge-types.ts
-    │   │   ├── game-types.ts
-    │   │   ├── index.ts
-    │   │   ├── item-types.ts
-    │   │   ├── map-types.ts
-    │   │   ├── node-types.ts
-    │   │   └── redux-types.ts
-    │   └── utils
-    │       ├── __tests__
-    │       │   └── game-utils.test.ts
-    │       ├── cn.ts
-    │       ├── date-utils.ts
-    │       ├── error-handlers.ts
-    │       ├── game-utils.ts
-    │       ├── map-generator.ts
-    │       ├── save-load.ts
-    │       └── test-utils.tsx
-    ├── next-env.d.ts
-    ├── next.config.ts
-    ├── package-lock.json
-    ├── package.json
-    ├── postcss.config.mjs
-    ├── styles
-    │   └── globals.css
-    ├── tailwind.config.ts
-    └── tsconfig.json
+├── package.json
+├── postcss.config.mjs
+├── styles
+│   └── globals.css
+├── tailwind.config.ts
+└── tsconfig.json
 
-25 directories, 93 files
+27 directories, 99 files

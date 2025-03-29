@@ -1,12 +1,14 @@
+// lib/types/item-types.ts
+
 /**
  * Item category types
  */
 export type ItemType = 
-  | 'knowledge'
-  | 'technical'
-  | 'teaching'
-  | 'personal'
-  | 'special';
+  | 'knowledge'  // Books, references, guides
+  | 'technical'  // Equipment, tools, software
+  | 'teaching'   // Educational aids
+  | 'personal'   // Personal development items
+  | 'special';   // Unique/legendary items
 
 /**
  * Item rarity levels
@@ -59,11 +61,14 @@ export interface Item {
  * Item effect definition
  */
 export interface ItemEffect {
+  id: string;
   type: EffectType;
   target: string;
   value: number | string | boolean;
   duration?: number; // in turns, -1 for permanent
   description: string;
+  isActive?: boolean;
+  remainingDuration?: number;
 }
 
 /**

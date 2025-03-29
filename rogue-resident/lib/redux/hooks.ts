@@ -1,21 +1,20 @@
 // lib/redux/hooks.ts
+'use client';
+
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
-import type { RootState, AppDispatch } from './store';
+import { type RootState, type AppDispatch } from './store';
+import { createSelector } from '@reduxjs/toolkit';
 
-/**
- * Typed version of useDispatch hook
- * Use this throughout the app instead of plain `useDispatch`
- */
-export const useAppDispatch: () => AppDispatch = useDispatch;
-
-/**
- * Typed version of useSelector hook
- * Use this throughout the app instead of plain `useSelector`
- */
+// Export typed versions of Redux hooks for use throughout the application
+export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
-/**
- * Helper for creating memoized selectors with proper TypeScript types
- * Usage: const selectMyValue = createSelector(state => state.slice.value)
- */
-export const createSelector = <T>(selector: (state: RootState) => T) => selector;
+// Re-export createSelector for consistent usage pattern throughout the app
+export { createSelector };
+
+// Generic type-safe selector creator for better intellisense and type checking
+export function createAppSelector<TResult>(
+  selector: (state: RootState) => TResult
+) {
+  return selector;
+}

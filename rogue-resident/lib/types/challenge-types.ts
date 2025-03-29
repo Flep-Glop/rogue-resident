@@ -1,5 +1,9 @@
+// lib/types/challenge-types.ts
+import type { Difficulty } from './game-types';
+import type { Reward } from './map-types';
+
 /**
- * Challenge types based on the game design document
+ * High-level challenge categories
  */
 export type ChallengeType = 
   | 'clinical' 
@@ -8,7 +12,7 @@ export type ChallengeType =
   | 'boss';
 
 /**
- * Challenge sub-types for specific scenarios
+ * Clinical challenge subtypes
  */
 export type ClinicalChallengeType = 
   | 'imaging-review' 
@@ -16,25 +20,34 @@ export type ClinicalChallengeType =
   | 'dose-calculation' 
   | 'plan-evaluation';
 
+/**
+ * QA challenge subtypes
+ */
 export type QAChallengeType = 
   | 'measurement-setup' 
   | 'data-collection' 
   | 'data-analysis' 
   | 'corrective-action';
 
+/**
+ * Educational challenge subtypes
+ */
 export type EducationalChallengeType = 
   | 'concept-explanation' 
   | 'visual-aid-creation' 
   | 'question-handling' 
   | 'knowledge-assessment';
 
+/**
+ * Boss challenge subtypes
+ */
 export type BossChallengeType = 
   | 'calibration' 
   | 'erratic-behavior' 
   | 'resolution';
 
 /**
- * Challenge state for tracking progress
+ * Challenge state in the game
  */
 export type ChallengeState = 
   | 'inactive' 
@@ -43,7 +56,7 @@ export type ChallengeState =
   | 'failed';
 
 /**
- * Challenge stages in progression
+ * Challenge progression stages
  */
 export type ChallengeStage = 
   | 'introduction' 
@@ -53,7 +66,7 @@ export type ChallengeStage =
   | 'outcome';
 
 /**
- * Performance grade levels
+ * Evaluation grades for challenges
  */
 export type ChallengeGrade = 'S' | 'A' | 'B' | 'C' | 'F';
 
@@ -65,28 +78,26 @@ export interface Challenge {
   type: ChallengeType;
   title: string;
   description: string;
-  difficulty: 'easy' | 'normal' | 'hard';
+  difficulty: Difficulty;
   stages: ChallengeStageInfo[];
-  timeLimit?: number;
-  rewards: {
-    insight: number;
-    itemId?: string;
-  }[];
+  timeLimit?: number; // In seconds
+  rewards: Reward[];
 }
 
 /**
- * Stage-specific information
+ * Challenge stage information
  */
 export interface ChallengeStageInfo {
   id: string;
   title: string;
   description: string;
   type: string;
-  content: any;
-  correctAnswer?: any;
+  content: any; // This will be typed more specifically for each challenge type
+  correctAnswer?: any; // The correct answer(s) for validation
+  isCompleted?: boolean;
   grading: {
-    criteria: any;
-    points: number;
+    criteria: any; // Specific grading criteria
+    points: number; // Maximum points for this stage
   };
 }
 
@@ -140,18 +151,18 @@ export interface BossChallenge extends Challenge {
 }
 
 /**
- * Challenge response tracking
+ * User response to a challenge stage
  */
 export interface ChallengeResponse {
   challengeId: string;
   stageId: string;
-  response: any;
+  response: any; // This will depend on the challenge type
   timeRemaining: number;
-  grade: ChallengeGrade;
+  grade?: ChallengeGrade;
 }
 
 /**
- * Challenge result
+ * Challenge completion result
  */
 export interface ChallengeResult {
   challengeId: string;
@@ -161,4 +172,5 @@ export interface ChallengeResult {
   timeRemaining: number;
   insightEarned: number;
   itemsEarned: string[];
+  feedback: string;
 }

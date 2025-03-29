@@ -18,26 +18,77 @@ import {
   deleteSaveThunk
 } from '@/lib/redux/slices/save-load-slice';
 import type { SaveSlot } from '@/lib/types/game-types';
+import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
 // Create memoized selectors
-const selectSaveLoadStatus = createSelector(state => ({
-  isSaving: state.saveLoad.isSaving,
-  isLoading: state.saveLoad.isLoading,
-  error: state.saveLoad.error,
-  autoSaveEnabled: state.saveLoad.autoSaveEnabled,
-  showSaveMenu: state.saveLoad.showSaveMenu,
-  hasSave: state.saveLoad.hasSave,
-  lastSaveTimestamp: state.saveLoad.lastSaveTimestamp
-}));
-const selectSaveLoadData = createSelector(state => ({
-  saves: state.saveLoad.saves,
-  currentSaveId: state.saveLoad.currentSaveId
-}));
+const selectSaveLoadStatus = createSelector(
+  [(state) => state.saveLoad],
+  (saveLoad) => ({
+    isSaving: saveLoad.isSaving,
+    isLoading: saveLoad.isLoading,
+    error: saveLoad.error,
+    autoSaveEnabled: saveLoad.autoSaveEnabled,
+    showSaveMenu: saveLoad.showSaveMenu,
+    hasSave: saveLoad.hasSave,
+    lastSaveTimestamp: saveLoad.lastSaveTimestamp
+  })
+);
+
+const selectSaveLoadData = createSelector(
+  [(state) => state.saveLoad],
+  (saveLoad) => ({
+    saves: saveLoad.saves,
+    currentSaveId: saveLoad.currentSaveId
+  })
+);
+
+/**
+ * Interface defining the return value of the useSaveLoad hook
+ */
+interface UseSaveLoadReturn {
+  // State
+  isSaving: boolean;
+  isLoading: boolean;
+  error: string | null;
+  autoSaveEnabled: boolean;
+  showSaveMenu: boolean;
+  hasSave: boolean;
+  lastSaveTimestamp: number | null;
+  saves: SaveSlot[];
+  currentSaveId: string | null;
+  
+  // Actions
+  setSaves: (saves: SaveSlot[]) => void;
+  addSave: (save: SaveSlot) => void;
+  removeSave: (saveId: string) => void;
+  setIsSaving: (saving: boolean) => void;
+  setIsLoading: (loading: boolean) => void;
+  setCurrentSaveId: (saveId: string | null) => void;
+  setError: (error: string | null) => void;
+  setAutoSaveEnabled: (enabled: boolean) => void;
+  setSaveMenuOpen: (open: boolean) => void;
+  loadSaves: () => void;
+  
+  // Thunk actions
+  saveGame: () => Promise<void>;
+  loadGame: () => Promise<void>;
+  deleteSave: () => Promise<void>;
+  
+  // Utility
+  getSaveById: (saveId: string) => SaveSlot | undefined;
+  getLatestSave: () => SaveSlot | undefined;
+  formatSaveDate: (timestamp: number) => string;
+}
 
 /**
  * Hook for managing save/load functionality
+ * 
+ * Provides methods to save and load game state, manage save slots,
+ * and handle related UI state.
+ * 
+ * @returns Object containing save/load state and methods
  */
-export function useSaveLoad() {
+export function useSaveLoad(): UseSaveLoadReturn {
   const dispatch = useAppDispatch();
   
   // Get state from selectors
@@ -52,75 +103,184 @@ export function useSaveLoad() {
   } = useAppSelector(selectSaveLoadStatus);
   const { saves, currentSaveId } = useAppSelector(selectSaveLoadData);
   
-  // Save/load actions
-  const setSavesList = useCallback((saves: SaveSlot[]) => {
-    dispatch(setSaves(saves));
+  /**
+   * Sets the list of save slots
+   * 
+   * @param saves - Array of save slots to set
+   */
+  const setSavesList = useCallback((saves: SaveSlot[]): void => {
+    tryCatch(() => {
+      dispatch(setSaves(saves));
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  const addSaveToList = useCallback((save: SaveSlot) => {
-    dispatch(addSave(save));
+  /**
+   * Adds a save slot to the list
+   * 
+   * @param save - Save slot to add
+   */
+  const addSaveToList = useCallback((save: SaveSlot): void => {
+    tryCatch(() => {
+      dispatch(addSave(save));
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  const removeSaveFromList = useCallback((saveId: string) => {
-    dispatch(removeSave(saveId));
+  /**
+   * Removes a save slot from the list
+   * 
+   * @param saveId - ID of the save to remove
+   */
+  const removeSaveFromList = useCallback((saveId: string): void => {
+    tryCatch(() => {
+      dispatch(removeSave(saveId));
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  const setIsSaving = useCallback((saving: boolean) => {
-    dispatch(setSavingState(saving));
+  /**
+   * Sets the saving state
+   * 
+   * @param saving - Whether a save operation is in progress
+   */
+  const setIsSaving = useCallback((saving: boolean): void => {
+    tryCatch(() => {
+      dispatch(setSavingState(saving));
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  const setIsLoading = useCallback((loading: boolean) => {
-    dispatch(setLoadingState(loading));
+  /**
+   * Sets the loading state
+   * 
+   * @param loading - Whether a load operation is in progress
+   */
+  const setIsLoading = useCallback((loading: boolean): void => {
+    tryCatch(() => {
+      dispatch(setLoadingState(loading));
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  const setCurrentSave = useCallback((saveId: string | null) => {
-    dispatch(setCurrentSaveId(saveId));
+  /**
+   * Sets the current save ID
+   * 
+   * @param saveId - ID of the save to set as current, or null
+   */
+  const setCurrentSave = useCallback((saveId: string | null): void => {
+    tryCatch(() => {
+      dispatch(setCurrentSaveId(saveId));
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  const setSaveError = useCallback((error: string | null) => {
-    dispatch(setError(error));
+  /**
+   * Sets the error message
+   * 
+   * @param error - Error message to set, or null to clear
+   */
+  const setSaveError = useCallback((error: string | null): void => {
+    tryCatch(() => {
+      dispatch(setError(error));
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  const setAutoSave = useCallback((enabled: boolean) => {
-    dispatch(setAutoSaveEnabled(enabled));
+  /**
+   * Enables or disables auto-save
+   * 
+   * @param enabled - Whether auto-save should be enabled
+   */
+  const setAutoSave = useCallback((enabled: boolean): void => {
+    tryCatch(() => {
+      dispatch(setAutoSaveEnabled(enabled));
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  const toggleSaveMenu = useCallback((open: boolean) => {
-    dispatch(setSaveMenuOpen(open));
+  /**
+   * Opens or closes the save menu
+   * 
+   * @param open - Whether the save menu should be open
+   */
+  const toggleSaveMenu = useCallback((open: boolean): void => {
+    tryCatch(() => {
+      dispatch(setSaveMenuOpen(open));
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  const loadSavesList = useCallback(() => {
-    dispatch(loadSaves());
+  /**
+   * Loads the list of saves from storage
+   */
+  const loadSavesList = useCallback((): void => {
+    tryCatch(() => {
+      dispatch(loadSaves());
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [dispatch]);
   
-  // Thunk actions
-  const saveGame = useCallback(() => {
-    return dispatch(saveGameThunk());
+  /**
+   * Saves the current game state
+   * 
+   * @returns Promise that resolves when the save is complete
+   */
+  const saveGame = useCallback((): Promise<void> => {
+    return tryCatch(async () => {
+      return await dispatch(saveGameThunk()).unwrap();
+    }, Promise.resolve(), ErrorCode.SAVE_ERROR);
   }, [dispatch]);
   
-  const loadGame = useCallback(() => {
-    return dispatch(loadGameThunk());
+  /**
+   * Loads a saved game state
+   * 
+   * @returns Promise that resolves when the load is complete
+   */
+  const loadGame = useCallback((): Promise<void> => {
+    return tryCatch(async () => {
+      return await dispatch(loadGameThunk()).unwrap();
+    }, Promise.resolve(), ErrorCode.LOAD_ERROR);
   }, [dispatch]);
   
-  const deleteSave = useCallback(() => {
-    return dispatch(deleteSaveThunk());
+  /**
+   * Deletes the current save
+   * 
+   * @returns Promise that resolves when the delete is complete
+   */
+  const deleteSave = useCallback((): Promise<void> => {
+    return tryCatch(async () => {
+      return await dispatch(deleteSaveThunk()).unwrap();
+    }, Promise.resolve(), ErrorCode.DELETE_SAVE_ERROR);
   }, [dispatch]);
   
-  // Utility functions
+  /**
+   * Gets a save by its ID
+   * 
+   * @param saveId - ID of the save to get
+   * @returns The save slot, or undefined if not found
+   */
   const getSaveById = useCallback((saveId: string): SaveSlot | undefined => {
-    return saves.find(save => save.id === saveId);
+    return tryCatch(() => {
+      return saves.find(save => save.id === saveId);
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [saves]);
   
+  /**
+   * Gets the most recent save
+   * 
+   * @returns The most recent save slot, or undefined if none exist
+   */
   const getLatestSave = useCallback((): SaveSlot | undefined => {
-    if (saves.length === 0) return undefined;
-    
-    return saves.reduce((latest, save) => {
-      return save.timestamp > latest.timestamp ? save : latest;
-    }, saves[0]);
+    return tryCatch(() => {
+      if (saves.length === 0) return undefined;
+      
+      return saves.reduce((latest, save) => {
+        return save.timestamp > latest.timestamp ? save : latest;
+      }, saves[0]);
+    }, undefined, ErrorCode.SAVE_LOAD_ERROR);
   }, [saves]);
   
+  /**
+   * Formats a timestamp as a readable date string
+   * 
+   * @param timestamp - Timestamp to format
+   * @returns Formatted date string
+   */
   const formatSaveDate = useCallback((timestamp: number): string => {
-    return new Date(timestamp).toLocaleString();
+    return tryCatch(() => {
+      return new Date(timestamp).toLocaleString();
+    }, 'Unknown date', ErrorCode.DATE_FORMAT_ERROR);
   }, []);
   
   return {

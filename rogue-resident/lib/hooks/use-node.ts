@@ -18,46 +18,97 @@ import {
   startChallenge,
   resetChallenge
 } from '@/lib/redux/slices/challenge-slice';
-import type { NodeType, NodeStatus } from '@/lib/types/map-types';
+import type { NodeType, NodeStatus, MapNode } from '@/lib/types/map-types';
+import type { ChallengeType, ChallengeDifficulty } from '@/lib/types/challenge-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
-// Memoized selectors for better performance
+// Create memoized selectors for better performance
 const selectNodeState = createSelector(
-  (state) => ({
-    isInteracting: state.node.isInteracting,
-    selectedNodeId: state.node.selectedNodeId,
-    currentNodeId: state.node.currentNodeId,
-    interactionStage: state.node.interactionStage,
-    nodeType: state.node.nodeType,
-    nodeData: state.node.nodeData,
-    nodeStatus: state.node.nodeStatus,
-    isNodeActive: state.node.isNodeActive
-  }),
-  (state) => state
+  [(state) => state.node],
+  (node) => ({
+    isInteracting: node.isInteracting,
+    selectedNodeId: node.selectedNodeId,
+    currentNodeId: node.currentNodeId,
+    interactionStage: node.interactionStage,
+    nodeType: node.nodeType,
+    nodeData: node.nodeData,
+    nodeStatus: node.nodeStatus,
+    isNodeActive: node.isNodeActive
+  })
 );
 
 const selectMapState = createSelector(
-  (state) => ({
-    nodes: state.map.nodes,
-    unlockedNodeIds: state.map.unlockedNodeIds
-  }),
-  (state) => state
+  [(state) => state.map],
+  (map) => ({
+    nodes: map.nodes,
+    unlockedNodeIds: map.unlockedNodeIds
+  })
 );
 
 const selectChallengeState = createSelector(
-  (state) => ({
-    currentChallengeId: state.challenge.currentChallengeId,
-    challengeState: state.challenge.challengeState
-  }),
-  (state) => state
+  [(state) => state.challenge],
+  (challenge) => ({
+    currentChallengeId: challenge.currentChallengeId,
+    challengeState: challenge.challengeState
+  })
 );
+
+/**
+ * Interface for challenge data when starting a new challenge
+ */
+interface ChallengeStartData {
+  id: string;
+  type: ChallengeType;
+  totalStages: number;
+  title?: string;
+  description?: string;
+  difficulty?: ChallengeDifficulty;
+  timeLimit?: number;
+}
+
+/**
+ * Interface defining the return value of the useNode hook
+ */
+interface UseNodeReturn {
+  // State
+  isInteracting: boolean;
+  selectedNodeId: string | null;
+  currentNodeId: string | null;
+  interactionStage: string;
+  nodeType: NodeType | null;
+  nodeData: any;
+  fullNodeData: any;
+  nodeStatus: NodeStatus | null;
+  isNodeActive: boolean;
+  
+  // Challenge-related state
+  challengeId: string | null;
+  challengeState: string;
+  
+  // Node interaction methods
+  interactWithNode: (nodeId: string, type: NodeType, initialData?: any) => void;
+  setStage: (stage: string) => void;
+  cancelInteraction: () => void;
+  updateData: (data: any) => void;
+  completeInteraction: (success: boolean) => void;
+  startNodeChallenge: (challengeData: ChallengeStartData) => void;
+  nextStage: () => boolean;
+  previousStage: () => boolean;
+  
+  // Utility methods
+  isNodeAccessible: (nodeId: string) => boolean;
+  getNodeById: (nodeId: string) => MapNode | undefined;
+}
 
 /**
  * Hook for managing node interactions
  * 
- * @returns Node state and methods for interacting with nodes
+ * Provides functionality to interact with map nodes, manage node state,
+ * and handle node challenges.
+ * 
+ * @returns Object containing node state and interaction methods
  */
-export function useNode() {
+export function useNode(): UseNodeReturn {
   const dispatch = useAppDispatch();
   
   // Get state from selectors
@@ -75,16 +126,26 @@ export function useNode() {
   const { nodes, unlockedNodeIds } = useAppSelector(selectMapState);
   const { currentChallengeId, challengeState } = useAppSelector(selectChallengeState);
   
-  // Get full node data from map state if available
-  const fullNodeData = useCallback(() => {
+  /**
+   * Gets the full node data from map state if available
+   * 
+   * @returns The full node data or null if not found
+   */
+  const fullNodeData = useCallback((): any => {
     return tryCatch(() => {
       if (!currentNodeId) return null;
       return nodes.find(node => node.id === currentNodeId)?.data || null;
     }, null, ErrorCode.NODE_ERROR);
   }, [currentNodeId, nodes])();
   
-  // Begin interaction with a node
-  const interactWithNode = useCallback((nodeId: string, type: NodeType, initialData?: any) => {
+  /**
+   * Begins interaction with a node
+   * 
+   * @param nodeId - The ID of the node to interact with
+   * @param type - The type of the node
+   * @param initialData - Optional initial data for the interaction
+   */
+  const interactWithNode = useCallback((nodeId: string, type: NodeType, initialData?: any): void => {
     tryCatch(() => {
       // Check if node is unlocked
       if (!unlockedNodeIds.includes(nodeId)) {
@@ -104,33 +165,47 @@ export function useNode() {
         nodeType: type,
         nodeData: initialData
       }));
-    }, undefined, ErrorCode.NODE_ERROR);
+    }, undefined, ErrorCode.NODE_INTERACTION_ERROR);
   }, [dispatch, unlockedNodeIds]);
   
-  // Set the current stage of the node interaction
-  const setStage = useCallback((stage: string) => {
+  /**
+   * Sets the current stage of the node interaction
+   * 
+   * @param stage - The stage to set
+   */
+  const setStage = useCallback((stage: string): void => {
     tryCatch(() => {
       dispatch(setNodeState(stage));
-    }, undefined, ErrorCode.NODE_ERROR);
+    }, undefined, ErrorCode.NODE_STATE_ERROR);
   }, [dispatch]);
   
-  // Cancel the current node interaction
-  const cancelInteraction = useCallback(() => {
+  /**
+   * Cancels the current node interaction
+   */
+  const cancelInteraction = useCallback((): void => {
     tryCatch(() => {
       dispatch(resetNodeInteraction());
       dispatch(resetChallenge());
-    }, undefined, ErrorCode.NODE_ERROR);
+    }, undefined, ErrorCode.NODE_INTERACTION_ERROR);
   }, [dispatch]);
   
-  // Update node data during interaction
-  const updateData = useCallback((data: any) => {
+  /**
+   * Updates node data during interaction
+   * 
+   * @param data - The new data to update
+   */
+  const updateData = useCallback((data: any): void => {
     tryCatch(() => {
       dispatch(updateNodeData(data));
-    }, undefined, ErrorCode.NODE_ERROR);
+    }, undefined, ErrorCode.NODE_DATA_ERROR);
   }, [dispatch]);
   
-  // Complete the current node interaction
-  const completeInteraction = useCallback((success: boolean) => {
+  /**
+   * Completes the current node interaction
+   * 
+   * @param success - Whether the interaction was successful
+   */
+  const completeInteraction = useCallback((success: boolean): void => {
     tryCatch(() => {
       if (currentNodeId) {
         if (success) {
@@ -144,26 +219,26 @@ export function useNode() {
         // Reset the challenge state
         dispatch(resetChallenge());
       }
-    }, undefined, ErrorCode.NODE_ERROR);
+    }, undefined, ErrorCode.NODE_COMPLETION_ERROR);
   }, [dispatch, currentNodeId]);
   
-  // Start a challenge for the current node
-  const startNodeChallenge = useCallback((challengeData: { 
-    id: string;
-    type: string;
-    totalStages: number;
-    title?: string;
-    description?: string;
-    difficulty?: string;
-    timeLimit?: number;
-  }) => {
+  /**
+   * Starts a challenge for the current node
+   * 
+   * @param challengeData - Data for the challenge to start
+   */
+  const startNodeChallenge = useCallback((challengeData: ChallengeStartData): void => {
     tryCatch(() => {
       dispatch(startChallenge(challengeData));
-    }, undefined, ErrorCode.NODE_ERROR);
+    }, undefined, ErrorCode.CHALLENGE_START_ERROR);
   }, [dispatch]);
   
-  // Navigation through stages
-  const nextStage = useCallback(() => {
+  /**
+   * Navigates to the next stage in the interaction
+   * 
+   * @returns Whether navigation was successful
+   */
+  const nextStage = useCallback((): boolean => {
     return tryCatch(() => {
       // Define the standard stage progression
       const stages = ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
@@ -175,10 +250,15 @@ export function useNode() {
       }
       
       return false;
-    }, false, ErrorCode.NODE_ERROR);
+    }, false, ErrorCode.NODE_NAVIGATION_ERROR);
   }, [dispatch, interactionStage]);
   
-  const previousStage = useCallback(() => {
+  /**
+   * Navigates to the previous stage in the interaction
+   * 
+   * @returns Whether navigation was successful
+   */
+  const previousStage = useCallback((): boolean => {
     return tryCatch(() => {
       // Define the standard stage progression
       const stages = ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
@@ -190,18 +270,28 @@ export function useNode() {
       }
       
       return false;
-    }, false, ErrorCode.NODE_ERROR);
+    }, false, ErrorCode.NODE_NAVIGATION_ERROR);
   }, [dispatch, interactionStage]);
   
-  // Check if a given node is accessible
+  /**
+   * Checks if a given node is accessible
+   * 
+   * @param nodeId - The ID of the node to check
+   * @returns Whether the node is unlocked
+   */
   const isNodeAccessible = useCallback((nodeId: string): boolean => {
     return tryCatch(() => {
       return unlockedNodeIds.includes(nodeId);
-    }, false, ErrorCode.NODE_ERROR);
+    }, false, ErrorCode.NODE_ACCESS_ERROR);
   }, [unlockedNodeIds]);
   
-  // Get a node by ID
-  const getNodeById = useCallback((nodeId: string) => {
+  /**
+   * Gets a node by ID
+   * 
+   * @param nodeId - The ID of the node to get
+   * @returns The node with the given ID, or undefined if not found
+   */
+  const getNodeById = useCallback((nodeId: string): MapNode | undefined => {
     return tryCatch(() => {
       return nodes.find(node => node.id === nodeId);
     }, undefined, ErrorCode.NODE_ERROR);

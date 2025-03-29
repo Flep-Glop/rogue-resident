@@ -1,5 +1,4 @@
-import { ChallengeType, ChallengeGrade } from './challenge-types';
-import { ItemType } from './item-types';
+// lib/types/game-types.ts
 
 /**
  * Game difficulty settings
@@ -7,45 +6,52 @@ import { ItemType } from './item-types';
 export type Difficulty = 'easy' | 'normal' | 'hard';
 
 /**
+ * Game state
+ */
+export type GameStatus = 'idle' | 'playing' | 'paused' | 'complete' | 'game-over';
+
+/**
  * Character type options
  */
 export type CharacterType = 'resident' | 'researcher' | 'specialist' | 'regulator';
 
 /**
- * Character interface
+ * Character definition
  */
 export interface Character {
   id: string;
+  type: CharacterType;
   name: string;
   description: string;
   startingHealth: number;
   startingInsight: number;
-  specialAbilities: {
-    name: string;
-    description: string;
-  }[];
+  specialAbilities: Ability[];
   portrait: string;
+  flavorText?: string;
 }
 
 /**
- * Ability interface for character abilities
+ * Character ability
  */
 export interface Ability {
   id: string;
   name: string;
   description: string;
-  cooldown: number;
+  cooldown: number; // In turns/actions
   currentCooldown: number;
   isAvailable: boolean;
+  effect: (state: any) => any; // Generic effect function, actual implementation will be more specific
 }
 
 /**
- * Player state interface
+ * Player state
  */
 export interface PlayerState {
   characterType: CharacterType;
-  lives: number;
-  maxLives: number;
+  name: string;
+  health: number;
+  maxHealth: number;
+  insight: number; // In-game currency
   abilities: Ability[];
   stats: {
     clinical: number;
@@ -55,7 +61,7 @@ export interface PlayerState {
 }
 
 /**
- * Game session stats for tracking progress
+ * Game session statistics
  */
 export interface GameSessionStats {
   timePlayedSeconds: number;
@@ -69,23 +75,26 @@ export interface GameSessionStats {
   healthLost: number;
   healthGained: number;
   runsCompleted: number;
+  score: number;
 }
 
 /**
- * Save data structure
+ * Save game data structure
  */
 export interface SaveGameData {
   id: string;
   name: string;
   timestamp: number;
   floorLevel: number;
-  playerHealth: number;
-  playerInsight: number;
+  playerState: PlayerState;
+  inventory: any; // Will be typed more specifically in actual implementation
+  map: any; // Will be typed more specifically in actual implementation
   score: number;
+  version: string; // For handling migrations between game versions
 }
 
 /**
- * Save slot interface for UI display
+ * Save slot for UI display
  */
 export interface SaveSlot {
   id: string;
@@ -95,4 +104,6 @@ export interface SaveSlot {
   playerHealth: number;
   playerInsight: number;
   score: number;
+  lastPlayed: string; // Formatted date/time
+  thumbnail?: string; // URL to thumbnail image
 }
