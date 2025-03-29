@@ -1,6 +1,7 @@
+// app/layout.tsx
 import './globals.css';
 import type { Metadata } from 'next';
-import { ReduxProvider } from '@/lib/redux/provider';
+import { ReduxProviderWrapper } from '@/lib/redux/provider';
 
 export const metadata: Metadata = {
   title: 'Rogue Resident: Medical Physics Residency',
@@ -15,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-100">
-        <ReduxProvider>{children}</ReduxProvider>
+        <ReduxProviderWrapper>{children}</ReduxProviderWrapper>
       </body>
     </html>
   );

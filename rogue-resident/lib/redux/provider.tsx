@@ -1,8 +1,9 @@
+// lib/redux/provider.tsx
 'use client';
 
 import { Provider } from 'react-redux';
 import { store } from './store';
 
-export function ReduxProvider({ children }: { children: React.ReactNode }) {
+export function ReduxProviderWrapper({ children }: { children: React.ReactNode }) {
   return <Provider store={store}>{children}</Provider>;
 }

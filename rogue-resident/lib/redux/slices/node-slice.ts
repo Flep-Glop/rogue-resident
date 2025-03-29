@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../store';
-import { NodeType } from '@/lib/types/map-types';
+import { NodeType } from '@/lib/types/node-types';
 
 export interface NodeInteractionState {
   isInteracting: boolean;
@@ -37,7 +37,7 @@ export const nodeSlice = createSlice({
       state.nodeData = nodeData || null;
     },
     
-    // Update the current interaction stage
+    // Set the current stage of node interaction
     setNodeState: (state, action: PayloadAction<string>) => {
       state.interactionStage = action.payload;
     },
@@ -47,12 +47,20 @@ export const nodeSlice = createSlice({
       return initialState;
     },
     
-    // Update node data during interaction
+    // Update the data during the node interaction
     updateNodeData: (state, action: PayloadAction<any>) => {
       state.nodeData = {
         ...state.nodeData,
         ...action.payload
       };
+    },
+    
+    // Complete the current node interaction
+    completeNode: (state, action: PayloadAction<{
+      success: boolean
+    }>) => {
+      // This only completes the interaction, not the node in the map
+      state.isInteracting = false;
     }
   }
 });
@@ -62,7 +70,8 @@ export const {
   selectNode,
   setNodeState,
   resetNodeInteraction,
-  updateNodeData
+  updateNodeData,
+  completeNode
 } = nodeSlice.actions;
 
 // Export selectors

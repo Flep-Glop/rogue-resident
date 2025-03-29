@@ -1,10 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../store';
-import { ChallengeType, Difficulty } from '@/lib/types/game-types';
+import { 
+  ChallengeType, 
+  ChallengeStage, 
+  ChallengeGrade 
+} from '@/lib/types/challenge-types';
+import { Difficulty } from '@/lib/types/game-types';
 
-export type GradeType = 'S' | 'A' | 'B' | 'C' | 'F';
-
-export interface ChallengeStage {
+export interface ChallengeStageData {
   id: string;
   type: string;
   content: any;
@@ -13,32 +16,36 @@ export interface ChallengeStage {
   correctAnswer?: any;
 }
 
-export interface ChallengeSliceState {
-  isActive: boolean;
+export interface ChallengeState {
+  currentChallengeId: string | null;
   challengeType: ChallengeType | null;
   difficulty: Difficulty;
   title: string;
   description: string;
-  currentStageIndex: number;
-  stages: ChallengeStage[];
+  currentStage: ChallengeStage | null;
+  stages: ChallengeStageData[];
   isCompleted: boolean;
-  grade: GradeType | null;
-  rewards: any[] | null;
+  overallGrade: ChallengeGrade | null;
+  insightReward: number;
+  itemReward: string | null;
   timeRemaining: number | null; // For timed challenges
+  challengeState: 'inactive' | 'active' | 'completed' | 'failed';
 }
 
-const initialState: ChallengeSliceState = {
-  isActive: false,
+const initialState: ChallengeState = {
+  currentChallengeId: null,
   challengeType: null,
   difficulty: 'normal',
   title: '',
   description: '',
-  currentStageIndex: 0,
+  currentStage: null,
   stages: [],
   isCompleted: false,
-  grade: null,
-  rewards: null,
-  timeRemaining: null
+  overallGrade: null,
+  insightReward: 0,
+  itemReward: null,
+  timeRemaining: null,
+  challengeState: 'inactive'
 };
 
 export const challengeSlice = createSlice({
@@ -46,86 +53,106 @@ export const challengeSlice = createSlice({
   initialState,
   reducers: {
     startChallenge: (state, action: PayloadAction<{
-      challengeType: ChallengeType;
-      difficulty: Difficulty;
-      title: string;
-      description: string;
-      stages: ChallengeStage[];
-      timeLimit?: number; // Optional time limit in seconds
+      id: string;
+      type: ChallengeType;
+      totalStages: number;
+      title?: string;
+      description?: string;
+      difficulty?: Difficulty;
+      timeLimit?: number;
     }>) => {
-      const { challengeType, difficulty, title, description, stages, timeLimit } = action.payload;
+      const { id, type, totalStages, title, description, difficulty, timeLimit } = action.payload;
       
-      state.isActive = true;
-      state.challengeType = challengeType;
-      state.difficulty = difficulty;
-      state.title = title;
-      state.description = description;
-      state.stages = stages;
-      state.currentStageIndex = 0;
+      state.currentChallengeId = id;
+      state.challengeType = type;
+      state.title = title || '';
+      state.description = description || '';
+      state.difficulty = difficulty || 'normal';
+      state.currentStage = 'introduction';
       state.isCompleted = false;
-      state.grade = null;
-      state.rewards = null;
+      state.overallGrade = null;
+      state.insightReward = 0;
+      state.itemReward = null;
       state.timeRemaining = timeLimit || null;
+      state.challengeState = 'active';
     },
     
-    nextStage: (state) => {
-      if (state.currentStageIndex < state.stages.length - 1) {
-        state.currentStageIndex += 1;
-      } else {
-        // All stages complete, calculate grade
-        state.isCompleted = true;
-      }
+    advanceStage: (state, action: PayloadAction<ChallengeStage>) => {
+      state.currentStage = action.payload;
     },
     
-    previousStage: (state) => {
-      if (state.currentStageIndex > 0) {
-        state.currentStageIndex -= 1;
-      }
-    },
-    
-    submitAnswer: (state, action: PayloadAction<any>) => {
-      const answer = action.payload;
-      const currentStage = state.stages[state.currentStageIndex];
+    recordResponse: (state, action: PayloadAction<{
+      stage: ChallengeStage;
+      response: any;
+    }>) => {
+      const { stage, response } = action.payload;
+      const stageIndex = state.stages.findIndex(s => s.id === stage);
       
-      if (currentStage) {
-        currentStage.userAnswer = answer;
-        currentStage.isCompleted = true;
+      if (stageIndex >= 0) {
+        state.stages[stageIndex].userAnswer = response;
+        state.stages[stageIndex].isCompleted = true;
       }
     },
     
-    setStageCompleted: (state, action: PayloadAction<boolean>) => {
-      const completed = action.payload;
-      const currentStage = state.stages[state.currentStageIndex];
+    setOverallGrade: (state, action: PayloadAction<ChallengeGrade>) => {
+      state.overallGrade = action.payload;
       
-      if (currentStage) {
-        currentStage.isCompleted = completed;
+      // Calculate insight reward based on grade
+      switch (action.payload) {
+        case 'S':
+          state.insightReward = 100;
+          break;
+        case 'A':
+          state.insightReward = 75;
+          break;
+        case 'B':
+          state.insightReward = 50;
+          break;
+        case 'C':
+          state.insightReward = 25;
+          break;
+        case 'F':
+          state.insightReward = 0;
+          break;
       }
     },
     
     completeChallenge: (state, action: PayloadAction<{
-      grade: GradeType;
+      grade: ChallengeGrade;
       rewards: any[];
     }>) => {
       const { grade, rewards } = action.payload;
       
       state.isCompleted = true;
-      state.grade = grade;
-      state.rewards = rewards;
+      state.overallGrade = grade;
+      state.challengeState = 'completed';
+      
+      // Calculate rewards
+      state.insightReward = rewards.find(r => r.type === 'insight')?.value || 0;
+      state.itemReward = rewards.find(r => r.type === 'item')?.itemId || null;
+    },
+    
+    failChallenge: (state) => {
+      state.isCompleted = true;
+      state.overallGrade = 'F';
+      state.challengeState = 'failed';
+      state.insightReward = 0;
+      state.itemReward = null;
     },
     
     resetChallenge: (state) => {
       return initialState;
     },
     
-    // For timed challenges
     decrementTimer: (state) => {
       if (state.timeRemaining !== null && state.timeRemaining > 0) {
         state.timeRemaining -= 1;
         
-        // If time runs out, mark as failed
+        // Time's up - fail the challenge
         if (state.timeRemaining === 0) {
           state.isCompleted = true;
-          state.grade = 'F';
+          state.overallGrade = 'F';
+          state.challengeState = 'failed';
         }
       }
     }
@@ -135,23 +162,24 @@ export const challengeSlice = createSlice({
 // Export actions
 export const {
   startChallenge,
-  nextStage,
-  previousStage,
-  submitAnswer,
-  setStageCompleted,
+  advanceStage,
+  recordResponse,
+  setOverallGrade,
   completeChallenge,
+  failChallenge,
   resetChallenge,
   decrementTimer
 } = challengeSlice.actions;
 
 // Export selectors
 export const selectChallengeState = (state: RootState) => state.challenge;
-export const selectIsActiveChallenge = (state: RootState) => state.challenge.isActive;
-export const selectCurrentStageIndex = (state: RootState) => state.challenge.currentStageIndex;
-export const selectCurrentStage = (state: RootState) => 
-  state.challenge.stages[state.challenge.currentStageIndex] || null;
+export const selectCurrentChallengeId = (state: RootState) => state.challenge.currentChallengeId;
+export const selectChallengeType = (state: RootState) => state.challenge.challengeType;
+export const selectCurrentStage = (state: RootState) => state.challenge.currentStage;
 export const selectChallengeTitle = (state: RootState) => state.challenge.title;
-export const selectChallengeGrade = (state: RootState) => state.challenge.grade;
 export const selectChallengeCompleted = (state: RootState) => state.challenge.isCompleted;
+export const selectChallengeGrade = (state: RootState) => state.challenge.overallGrade;
+export const selectInsightReward = (state: RootState) => state.challenge.insightReward;
+export const selectItemReward = (state: RootState) => state.challenge.itemReward;
 
 export default challengeSlice.reducer;

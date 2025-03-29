@@ -1,5 +1,4 @@
-import { configureStore, combineReducers, Middleware } from '@reduxjs/toolkit';
-import { useDispatch } from 'react-redux';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import gameReducer from './slices/game-slice';
 import mapReducer from './slices/map-slice';
 import nodeReducer from './slices/node-slice';
@@ -8,8 +7,18 @@ import inventoryReducer from './slices/inventory-slice';
 import saveLoadReducer from './slices/save-load-slice';
 import { saveGameToStorage } from '@/lib/utils/save-load';
 
-// Custom middleware for auto-saving
-const autoSaveMiddleware: Middleware = store => next => action => {
+// Combine all reducers
+const rootReducer = combineReducers({
+  game: gameReducer,
+  map: mapReducer,
+  node: nodeReducer,
+  challenge: challengeReducer,
+  inventory: inventoryReducer,
+  saveLoad: saveLoadReducer
+});
+
+// Auto-save middleware
+const autoSaveMiddleware = store => next => action => {
   const result = next(action);
   
   // Actions that should trigger an auto-save
@@ -33,37 +42,27 @@ const autoSaveMiddleware: Middleware = store => next => action => {
     const saveId = 'autosave';
     
     // Save game state to storage
-    saveGameToStorage(saveId, state);
-    
-    // Update auto-save metadata
-    store.dispatch({
-      type: 'saveLoad/addSave',
-      payload: {
-        id: saveId,
-        name: 'Auto Save',
-        timestamp: Date.now(),
-        floorLevel: state.map.floorLevel,
-        playerHealth: state.game.playerHealth,
-        playerInsight: state.game.playerInsight,
-        score: state.game.score
-      }
+    saveGameToStorage(saveId, state).then(saveData => {
+      // Update auto-save metadata
+      store.dispatch({
+        type: 'saveLoad/addSave',
+        payload: {
+          id: saveId,
+          name: 'Auto Save',
+          timestamp: Date.now(),
+          floorLevel: state.map.floorLevel,
+          playerHealth: state.game.playerHealth,
+          playerInsight: state.game.playerInsight,
+          score: state.game.score
+        }
+      });
     });
   }
   
   return result;
 };
 
-// Combine all reducers
-const rootReducer = combineReducers({
-  game: gameReducer,
-  map: mapReducer,
-  node: nodeReducer,
-  challenge: challengeReducer,
-  inventory: inventoryReducer,
-  saveLoad: saveLoadReducer
-});
-
-// Create Redux store
+// Create store
 export const store = configureStore({
   reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
@@ -79,6 +78,5 @@ export const store = configureStore({
 // Export types
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-export const useAppDispatch = () => useDispatch<AppDispatch>();
 
 export default store;

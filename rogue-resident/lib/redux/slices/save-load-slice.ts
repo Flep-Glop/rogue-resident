@@ -1,16 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../store';
-import { saveGameToStorage, loadGameFromStorage, getSavedGames } from '@/lib/utils/save-load';
-
-export interface SaveSlot {
-  id: string;
-  name: string;
-  timestamp: number;
-  floorLevel: number;
-  playerHealth: number;
-  playerInsight: number;
-  score: number;
-}
+import { SaveSlot, SaveGameData } from '@/lib/types/game-types';
+import { 
+  saveGameToStorage, 
+  loadGameFromStorage, 
+  getSavedGames 
+} from '@/lib/utils/save-load';
 
 export interface SaveLoadState {
   saves: SaveSlot[];
@@ -19,6 +14,9 @@ export interface SaveLoadState {
   currentSaveId: string | null;
   error: string | null;
   autoSaveEnabled: boolean;
+  lastSaveTimestamp: number | null;
+  showSaveMenu: boolean;
+  hasSave: boolean;
 }
 
 const initialState: SaveLoadState = {
@@ -27,7 +25,10 @@ const initialState: SaveLoadState = {
   isLoading: false,
   currentSaveId: null,
   error: null,
-  autoSaveEnabled: true
+  autoSaveEnabled: true,
+  lastSaveTimestamp: null,
+  showSaveMenu: false,
+  hasSave: false
 };
 
 export const saveLoadSlice = createSlice({
@@ -36,6 +37,7 @@ export const saveLoadSlice = createSlice({
   reducers: {
     setSaves: (state, action: PayloadAction<SaveSlot[]>) => {
       state.saves = action.payload;
+      state.hasSave = action.payload.length > 0;
     },
     
     addSave: (state, action: PayloadAction<SaveSlot>) => {
@@ -51,6 +53,8 @@ export const saveLoadSlice = createSlice({
       }
       
       state.currentSaveId = newSave.id;
+      state.lastSaveTimestamp = newSave.timestamp;
+      state.hasSave = true;
     },
     
     removeSave: (state, action: PayloadAction<string>) => {
@@ -60,6 +64,8 @@ export const saveLoadSlice = createSlice({
       if (state.currentSaveId === saveId) {
         state.currentSaveId = null;
       }
+      
+      state.hasSave = state.saves.length > 0;
     },
     
     setSavingState: (state, action: PayloadAction<boolean>) => {
@@ -82,11 +88,16 @@ export const saveLoadSlice = createSlice({
       state.autoSaveEnabled = action.payload;
     },
     
+    setSaveMenuOpen: (state, action: PayloadAction<boolean>) => {
+      state.showSaveMenu = action.payload;
+    },
+    
     loadSaves: (state) => {
       try {
         // Load saved games from storage
         const saves = getSavedGames();
         state.saves = saves;
+        state.hasSave = saves.length > 0;
         state.error = null;
       } catch (error) {
         state.error = "Failed to load saved games";
@@ -105,21 +116,22 @@ export const {
   setCurrentSaveId,
   setError,
   setAutoSaveEnabled,
+  setSaveMenuOpen,
   loadSaves
 } = saveLoadSlice.actions;
 
 // Thunk for saving the game
-export const saveGame = (saveName: string) => async (dispatch: any, getState: () => RootState) => {
+export const saveGameThunk = () => async (dispatch: any, getState: () => RootState) => {
   try {
     dispatch(setSavingState(true));
     
     const state = getState();
-    const saveId = saveName.replace(/\s+/g, '_').toLowerCase() + '_' + Date.now();
+    const saveId = `save_${Date.now()}`;
     
     // Prepare save metadata
-    const saveData = {
+    const saveData: SaveGameData = {
       id: saveId,
-      name: saveName,
+      name: `Save ${new Date().toLocaleString()}`,
       timestamp: Date.now(),
       floorLevel: state.map.floorLevel,
       playerHealth: state.game.playerHealth,
@@ -133,16 +145,27 @@ export const saveGame = (saveName: string) => async (dispatch: any, getState: ()
     // Add save to list
     dispatch(addSave(saveData));
     dispatch(setError(null));
+    
+    return saveData;
   } catch (error) {
     dispatch(setError("Failed to save game"));
+    throw error;
   } finally {
     dispatch(setSavingState(false));
   }
 };
 
 // Thunk for loading the game
-export const loadGame = (saveId: string) => async (dispatch: any) => {
+export const loadGameThunk = () => async (dispatch: any, getState: () => RootState) => {
   try {
+    const state = getState();
+    const saveId = state.saveLoad.currentSaveId;
+    
+    if (!saveId) {
+      dispatch(setError("No save selected"));
+      return;
+    }
+    
     dispatch(setLoadingState(true));
     
     // Load game state from storage
@@ -150,22 +173,47 @@ export const loadGame = (saveId: string) => async (dispatch: any) => {
     
     if (gameState) {
       // Dispatch actions to restore state
-      // Note: The actual implementation would depend on how you want to handle loading
-      // This is a simplified approach
       dispatch({
         type: 'LOAD_GAME_STATE',
         payload: gameState
       });
       
-      dispatch(setCurrentSaveId(saveId));
       dispatch(setError(null));
+      return gameState;
     } else {
       dispatch(setError("Failed to load game: Save not found"));
+      throw new Error("Save not found");
     }
   } catch (error) {
     dispatch(setError("Failed to load game"));
+    throw error;
   } finally {
     dispatch(setLoadingState(false));
+  }
+};
+
+// Thunk for deleting a save
+export const deleteSaveThunk = () => async (dispatch: any, getState: () => RootState) => {
+  try {
+    const state = getState();
+    const saveId = state.saveLoad.currentSaveId;
+    
+    if (!saveId) {
+      dispatch(setError("No save selected"));
+      return;
+    }
+    
+    // Delete save from storage
+    await import('@/lib/utils/save-load').then(({ deleteSavedGame }) => {
+      deleteSavedGame(saveId);
+    });
+    
+    // Remove save from state
+    dispatch(removeSave(saveId));
+    dispatch(setError(null));
+  } catch (error) {
+    dispatch(setError("Failed to delete save"));
+    throw error;
   }
 };
 
@@ -174,5 +222,9 @@ export const selectSaveLoadState = (state: RootState) => state.saveLoad;
 export const selectSaves = (state: RootState) => state.saveLoad.saves;
 export const selectIsSaving = (state: RootState) => state.saveLoad.isSaving;
 export const selectIsLoading = (state: RootState) => state.saveLoad.isLoading;
+export const selectCurrentSaveId = (state: RootState) => state.saveLoad.currentSaveId;
+export const selectAutoSaveEnabled = (state: RootState) => state.saveLoad.autoSaveEnabled;
+export const selectShowSaveMenu = (state: RootState) => state.saveLoad.showSaveMenu;
+export const selectHasSave = (state: RootState) => state.saveLoad.hasSave;
 
 export default saveLoadSlice.reducer;

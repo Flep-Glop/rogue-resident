@@ -1,183 +1,62 @@
-// Game Difficulty Settings
+import { ChallengeType, ChallengeGrade } from './challenge-types';
+import { ItemType } from './item-types';
+
+/**
+ * Game difficulty settings
+ */
 export type Difficulty = 'easy' | 'normal' | 'hard';
 
-// Challenge Types
-export type ChallengeType = 
-  'clinical' | 
-  'qa' | 
-  'educational' | 
-  'boss';
+/**
+ * Character type options
+ */
+export type CharacterType = 'resident' | 'researcher' | 'specialist' | 'regulator';
 
-// Challenge Stage Types
-export type StageType = 
-  'introduction' | 
-  'imaging' | 
-  'parameters' | 
-  'dose' | 
-  'plan' | 
-  'outcome';
-
-// Common challenge data interface
-export interface ChallengeData {
+/**
+ * Character interface
+ */
+export interface Character {
   id: string;
-  title: string;
+  name: string;
   description: string;
-  difficulty: Difficulty;
-  type: ChallengeType;
-  stages: ChallengeStage[];
-  rewards: Reward[];
+  startingHealth: number;
+  startingInsight: number;
+  specialAbilities: {
+    name: string;
+    description: string;
+  }[];
+  portrait: string;
 }
 
-// Challenge stage interface
-export interface ChallengeStage {
+/**
+ * Ability interface for character abilities
+ */
+export interface Ability {
   id: string;
-  type: StageType;
-  content: any;
-  isCompleted: boolean;
+  name: string;
+  description: string;
+  cooldown: number;
+  currentCooldown: number;
+  isAvailable: boolean;
 }
 
-// Rewards
-export interface Reward {
-  type: 'insight' | 'health' | 'item' | 'researchPoints';
-  value: number;
-  itemId?: string;
-}
-
-// Clinical challenge specific data
-export interface ClinicalChallengeData extends ChallengeData {
-  patientInfo: {
-    age: number;
-    gender: string;
-    diagnosis: string;
-    stage: string;
-    previousTreatments: string[];
-  };
-  stages: {
-    imaging: {
-      images: string[];
-      correctAnswers: string[];
-      userAnswers?: string[];
-    };
-    parameters: {
-      options: {
-        energy: string[];
-        technique: string[];
-        modality: string[];
-      };
-      correctAnswers: {
-        energy: string;
-        technique: string;
-        modality: string;
-      };
-      userAnswers?: {
-        energy: string;
-        technique: string;
-        modality: string;
-      };
-    };
-    dose: {
-      prescription: string;
-      correctAnswer: number;
-      userAnswer?: number;
-      tolerance: number;
-    };
-    plan: {
-      dvhData: any;
-      structures: string[];
-      constraints: {
-        structure: string;
-        type: 'max' | 'mean' | 'min';
-        dose: number;
-        volume?: number;
-      }[];
-      correctAnswers: string[];
-      userAnswers?: string[];
-    };
+/**
+ * Player state interface
+ */
+export interface PlayerState {
+  characterType: CharacterType;
+  lives: number;
+  maxLives: number;
+  abilities: Ability[];
+  stats: {
+    clinical: number;
+    technical: number;
+    educational: number;
   };
 }
 
-// QA challenge specific data
-export interface QAChallengeData extends ChallengeData {
-  equipment: string;
-  procedure: string;
-  stages: {
-    setup: {
-      options: string[];
-      correctAnswer: string;
-      userAnswer?: string;
-    };
-    measurement: {
-      expectedValues: number[];
-      tolerances: number[];
-      readings: number[];
-      userValues?: number[];
-    };
-    analysis: {
-      data: any;
-      questions: {
-        text: string;
-        options: string[];
-        correctAnswer: string;
-        userAnswer?: string;
-      }[];
-    };
-  };
-}
-
-// Educational challenge specific data
-export interface EducationalChallengeData extends ChallengeData {
-  topic: string;
-  audience: 'students' | 'residents' | 'staff' | 'patients';
-  stages: {
-    preparation: {
-      concepts: string[];
-      correctApproach: string;
-      userChoice?: string;
-    };
-    presentation: {
-      slides: any;
-      questions: {
-        text: string;
-        difficulty: Difficulty;
-        correctAnswer: string;
-        userAnswer?: string;
-      }[];
-    };
-    assessment: {
-      questions: {
-        text: string;
-        options: string[];
-        correctAnswer: string;
-        userAnswer?: string;
-      }[];
-    };
-  };
-}
-
-// Boss challenge specific data
-export interface BossChallengeData extends ChallengeData {
-  bossName: string;
-  phases: number;
-  stages: {
-    phase1: {
-      challenges: any[];
-      requiredSuccess: number;
-      userSuccess?: number;
-    };
-    phase2: {
-      challenges: any[];
-      requiredSuccess: number;
-      userSuccess?: number;
-    };
-    phase3?: {
-      challenges: any[];
-      requiredSuccess: number;
-      userSuccess?: number;
-    };
-  };
-}
-
-// Game Session Stats
+/**
+ * Game session stats for tracking progress
+ */
 export interface GameSessionStats {
   timePlayedSeconds: number;
   nodesVisited: number;
@@ -190,4 +69,30 @@ export interface GameSessionStats {
   healthLost: number;
   healthGained: number;
   runsCompleted: number;
+}
+
+/**
+ * Save data structure
+ */
+export interface SaveGameData {
+  id: string;
+  name: string;
+  timestamp: number;
+  floorLevel: number;
+  playerHealth: number;
+  playerInsight: number;
+  score: number;
+}
+
+/**
+ * Save slot interface for UI display
+ */
+export interface SaveSlot {
+  id: string;
+  name: string;
+  timestamp: number;
+  floorLevel: number;
+  playerHealth: number;
+  playerInsight: number;
+  score: number;
 }

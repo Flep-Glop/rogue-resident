@@ -1,33 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../store';
 import { generateMap } from '@/lib/utils/map-generator';
-import { Difficulty, NodeType } from '@/lib/types/map-types';
-
-export interface MapNode {
-  id: string;
-  type: NodeType;
-  x: number;
-  y: number;
-  title: string;
-  description: string;
-  connections: string[]; // IDs of connected nodes
-  status: 'locked' | 'available' | 'current' | 'completed';
-  scenarioId?: string; // Reference to specific scenario data
-  difficulty?: Difficulty;
-  rewards?: Reward[];
-}
-
-export interface Reward {
-  type: 'insight' | 'health' | 'item' | 'researchPoints';
-  value: number;
-  itemId?: string;
-}
-
-export interface MapEdge {
-  id: string;
-  source: string;
-  target: string;
-}
+import { 
+  MapNode, 
+  MapEdge, 
+  Difficulty, 
+  GeneratedMap, 
+  MapGenerationOptions 
+} from '@/lib/types/node-types';
 
 export interface MapState {
   nodes: MapNode[];
@@ -37,6 +17,7 @@ export interface MapState {
   bossNodeId: string | null;
   floorLevel: number;
   isMapGenerated: boolean;
+  seed: number;
 }
 
 const initialState: MapState = {
@@ -46,18 +27,16 @@ const initialState: MapState = {
   startNodeId: null,
   bossNodeId: null,
   floorLevel: 1,
-  isMapGenerated: false
+  isMapGenerated: false,
+  seed: Math.floor(Math.random() * 1000000)
 };
 
 export const mapSlice = createSlice({
   name: 'map',
   initialState,
   reducers: {
-    generateNewMap: (state, action: PayloadAction<{
-      difficulty: Difficulty, 
-      nodeCount?: number
-    }>) => {
-      const { difficulty, nodeCount = 15 } = action.payload;
+    generateNewMap: (state, action: PayloadAction<MapGenerationOptions>) => {
+      const { difficulty, nodeCount } = action.payload;
       const { nodes, edges, startNodeId, bossNodeId } = generateMap(difficulty, nodeCount);
       
       state.nodes = nodes;
@@ -95,6 +74,23 @@ export const mapSlice = createSlice({
       }
     },
     
+    completeNode: (state, action: PayloadAction<string>) => {
+      const nodeId = action.payload;
+      const node = state.nodes.find(n => n.id === nodeId);
+      
+      if (node) {
+        node.status = 'completed';
+        
+        // Update connected nodes to be available
+        node.connections.forEach(connId => {
+          const connectedNode = state.nodes.find(n => n.id === connId);
+          if (connectedNode && connectedNode.status === 'locked') {
+            connectedNode.status = 'available';
+          }
+        });
+      }
+    },
+    
     completeCurrentNode: (state) => {
       if (state.currentNodeId) {
         const currentNode = state.nodes.find(n => n.id === state.currentNodeId);
@@ -117,7 +113,10 @@ export const mapSlice = createSlice({
     },
     
     resetMap: (state) => {
-      return initialState;
+      return {
+        ...initialState,
+        seed: Math.floor(Math.random() * 1000000) // Generate a new seed
+      };
     },
     
     // For debugging and testing
@@ -133,6 +132,7 @@ export const mapSlice = createSlice({
 export const {
   generateNewMap,
   setCurrentNode,
+  completeNode,
   completeCurrentNode,
   incrementFloor,
   resetMap,
