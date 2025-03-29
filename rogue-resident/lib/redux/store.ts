@@ -5,7 +5,8 @@ import nodeReducer from './slices/node-slice';
 import challengeReducer from './slices/challenge-slice';
 import inventoryReducer from './slices/inventory-slice';
 import saveLoadReducer from './slices/save-load-slice';
-import { saveGameToStorage } from '@/lib/utils/save-load';
+import { gameLoopMiddleware, autoSaveMiddleware, analyticsMiddleware } from './middleware/game-loop';
+import { AppError, ErrorType, reportError } from '@/lib/utils/error-handlers';
 
 // Combine all reducers
 const rootReducer = combineReducers({
@@ -17,54 +18,78 @@ const rootReducer = combineReducers({
   saveLoad: saveLoadReducer
 });
 
-// Auto-save middleware
-const autoSaveMiddleware = store => next => action => {
-  const result = next(action);
-  
-  // Actions that should trigger an auto-save
-  const autoSaveActions = [
-    'map/completeCurrentNode',
-    'game/takeDamage',
-    'game/heal',
-    'inventory/addItem',
-    'inventory/removeItem',
-    'challenge/completeChallenge'
-  ];
-  
-  // Check if auto-save is enabled and the action should trigger a save
-  if (
-    store.getState().saveLoad.autoSaveEnabled && 
-    autoSaveActions.includes(action.type) &&
-    store.getState().game.isGameStarted &&
-    !store.getState().game.isGameOver
-  ) {
-    const state = store.getState();
-    const saveId = 'autosave';
+// Error logging middleware
+const errorLoggingMiddleware = store => next => action => {
+  try {
+    return next(action);
+  } catch (error) {
+    // Create an AppError with appropriate type based on the action
+    const errorType = getErrorTypeFromAction(action);
     
-    // Save game state to storage
-    saveGameToStorage(saveId, state).then(saveData => {
-      // Update auto-save metadata
-      store.dispatch({
-        type: 'saveLoad/addSave',
-        payload: {
-          id: saveId,
-          name: 'Auto Save',
-          timestamp: Date.now(),
-          floorLevel: state.map.floorLevel,
-          playerHealth: state.game.playerHealth,
-          playerInsight: state.game.playerInsight,
-          score: state.game.score
-        }
-      });
+    const appError = error instanceof AppError
+      ? error
+      : new AppError(
+          `Redux error: ${error instanceof Error ? error.message : String(error)}`,
+          errorType,
+          undefined,
+          { action }
+        );
+    
+    // Report error
+    reportError(appError, { 
+      actionType: action.type,
+      state: store.getState()
     });
+    
+    // Re-throw the error to not swallow it
+    throw error;
   }
+};
+
+// Helper to determine error type from action
+function getErrorTypeFromAction(action: any): ErrorType {
+  const type = action.type || '';
   
-  return result;
+  if (type.startsWith('game/')) return ErrorType.GAME;
+  if (type.startsWith('map/')) return ErrorType.MAP;
+  if (type.startsWith('node/')) return ErrorType.NODE;
+  if (type.startsWith('challenge/')) return ErrorType.CHALLENGE;
+  if (type.startsWith('inventory/')) return ErrorType.INVENTORY;
+  if (type.startsWith('saveLoad/')) return ErrorType.SAVE_LOAD;
+  
+  return ErrorType.UNKNOWN;
+}
+
+// Root reducer with error handling
+const rootReducerWithErrorHandling = (state, action) => {
+  try {
+    return rootReducer(state, action);
+  } catch (error) {
+    // Log the error
+    const errorType = getErrorTypeFromAction(action);
+    
+    const appError = error instanceof AppError
+      ? error
+      : new AppError(
+          `Reducer error: ${error instanceof Error ? error.message : String(error)}`,
+          errorType,
+          undefined,
+          { action, state }
+        );
+    
+    reportError(appError, { 
+      actionType: action.type,
+      state: state
+    });
+    
+    // Return previous state to prevent the app from crashing
+    return state || rootReducer(undefined, { type: '@@INIT' });
+  }
 };
 
 // Create store
 export const store = configureStore({
-  reducer: rootReducer,
+  reducer: rootReducerWithErrorHandling,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
@@ -72,8 +97,21 @@ export const store = configureStore({
         ignoredActions: ['LOAD_GAME_STATE'],
         ignoredPaths: ['node.nodeData']
       }
-    }).concat(autoSaveMiddleware)
+    }).concat([
+      errorLoggingMiddleware,
+      gameLoopMiddleware,
+      autoSaveMiddleware,
+      analyticsMiddleware
+    ])
 });
+
+// Set up development tools
+if (process.env.NODE_ENV === 'development') {
+  // Expose store in development for debugging
+  if (typeof window !== 'undefined') {
+    window.__REDUX_STORE__ = store;
+  }
+}
 
 // Export types
 export type RootState = ReturnType<typeof store.getState>;
