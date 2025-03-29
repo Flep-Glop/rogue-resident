@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Styles */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+/* 8-bit Pixel Art Styles */
+@layer components {
+  /* Pixel corners for 8-bit aesthetic */
+  .pixel-corners {
+    clip-path: polygon(
+      0 4px, 4px 0, calc(100% - 4px) 0, 100% 4px, 
+      100% calc(100% - 4px), calc(100% - 4px) 100%, 
+      4px 100%, 0 calc(100% - 4px)
+    );
+  }
+  
+  /* Pixel text */
+  .pixel-text {
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.1em;
+    font-family: monospace, monospace;
+  }
+  
+  /* Animated edge for React Flow */
+  .react-flow__edge-path-animated {
+    stroke-dasharray: 5;
+    animation: flowAnimation 1s linear infinite;
+  }
+  
+  @keyframes flowAnimation {
+    0% {
+      stroke-dashoffset: 10;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* Node status styles */
+  .node-completed {
+    opacity: 0.7;
+  }
+  
+  .node-current {
+    box-shadow: 0 0 0 4px #FBD38D;
+    transform: scale(1.1);
+  }
+  
+  .node-available:hover {
+    box-shadow: 0 0 0 2px #FBD38D;
+  }
+  
+  .node-locked {
+    opacity: 0.5;
+    filter: grayscale(70%);
+    cursor: not-allowed;
+  }
+}
+
+/* Global Styles */
+html, body {
+  @apply antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* ReactFlow styles */
+.react-flow {
+  @apply border rounded-lg;
+}
+
+.react-flow__attribution {
+  @apply opacity-50 text-xs;
+}

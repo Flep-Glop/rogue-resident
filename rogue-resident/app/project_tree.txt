@@ -1,0 +1,55 @@
+.
+├── app_file.tst
+├── components
+│   ├── game
+│   │   ├── challenges
+│   │   │   ├── dose-stage.tsx
+│   │   │   ├── imaging-stage.tsx
+│   │   │   ├── introduction-stage.tsx
+│   │   │   ├── outcome-stage.tsx
+│   │   │   └── parameter-stage.tsx
+│   │   ├── character
+│   │   │   ├── character-card.tsx
+│   │   │   └── character-selection.tsx
+│   │   ├── game-dashboard.tsx
+│   │   ├── inventory
+│   │   │   ├── inventory-button.tsx
+│   │   │   ├── inventory-panel.tsx
+│   │   │   └── item-card.tsx
+│   │   ├── map
+│   │   │   ├── game-map.tsx
+│   │   │   ├── map-edge.tsx
+│   │   │   └── map-node.tsx
+│   │   ├── nodes
+│   │   │   ├── boss-node.tsx
+│   │   │   ├── challenge-stages
+│   │   │   │   ├── imaging-stage.tsx
+│   │   │   │   └── introduction-stage.tsx
+│   │   │   ├── clinical-node.tsx
+│   │   │   ├── educational-node.tsx
+│   │   │   ├── node-header.tsx
+│   │   │   ├── node-interaction.tsx
+│   │   │   ├── qa-node.tsx
+│   │   │   ├── storage-node.tsx
+│   │   │   └── vendor-node.tsx
+│   │   └── ui
+│   │       ├── game-hud.tsx
+│   │       └── save-menu.tsx
+│   └── ui
+│       ├── __tests__
+│       │   └── button.test.tsx
+│       ├── badge.tsx
+│       ├── button.tsx
+│       ├── card.tsx
+│       ├── modal.tsx
+│       ├── notification.tsx
+│       ├── progress.tsx
+│       └── tooltip.tsx
+├── game
+│   ├── layout.tsx
+│   └── page.tsx
+├── layout.tsx
+├── page.tsx
+└── project_tree.txt
+
+12 directories, 40 files

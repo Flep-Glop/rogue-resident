@@ -1,0 +1,76 @@
+// lib/config/nodeConfig.ts
+import { NodeType } from '@/lib/types/gameTypes';
+
+export interface NodeTypeConfig {
+  colors: {
+    bg: string;
+    border: string;
+    accent: string;
+    text: string;
+  };
+  description: string;
+  icon: string;
+}
+
+export const nodeConfig: Record<NodeType, NodeTypeConfig> = {
+  [NodeType.CLINICAL]: {
+    colors: {
+      bg: '#4A90E2',
+      border: '#3A80D2',
+      accent: '#F4D03F',
+      text: '#FFFFFF',
+    },
+    description: 'Patient case to diagnose and treat',
+    icon: 'clinical-icon.svg',
+  },
+  [NodeType.QA]: {
+    colors: {
+      bg: '#5A6978',
+      border: '#4A5968',
+      accent: '#E53E3E',
+      text: '#FFFFFF',
+    },
+    description: 'Equipment QA procedures',
+    icon: 'qa-icon.svg',
+  },
+  [NodeType.EDUCATIONAL]: {
+    colors: {
+      bg: '#26A69A',
+      border: '#16968A',
+      accent: '#FFF59D',
+      text: '#FFFFFF',
+    },
+    description: 'Educational scenarios to test knowledge',
+    icon: 'educational-icon.svg',
+  },
+  [NodeType.STORAGE]: {
+    colors: {
+      bg: '#D8CCA3',
+      border: '#C8BC93',
+      accent: '#B58863',
+      text: '#5A4A41',
+    },
+    description: 'Storage closet with potential items',
+    icon: 'storage-icon.svg',
+  },
+  [NodeType.VENDOR]: {
+    colors: {
+      bg: '#2C3E50',
+      border: '#1C2E40',
+      accent: '#3498DB',
+      text: '#FFFFFF',
+    },
+    description: 'Vendor showcase with items for purchase',
+    icon: 'vendor-icon.svg',
+  },
+  [NodeType.BOSS]: {
+    colors: {
+      bg: '#4FC3F7',
+      border: '#3FB3E7',
+      accent: '#FF5252',
+      text: '#FFFFFF',
+    },
+    description: 'Boss encounter with Ionix',
+    icon: 'boss-icon.svg',
+  },
+};
