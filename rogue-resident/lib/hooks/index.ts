@@ -1,4 +1,5 @@
 // lib/hooks/index.ts
+'use client';
 
 // Redux hooks
 export * from '../redux/hooks';

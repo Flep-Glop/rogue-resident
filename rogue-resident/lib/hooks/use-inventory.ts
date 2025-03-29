@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useAppSelector, useAppDispatch, createSelector } from '@/lib/redux/hooks';
+import { useAppDispatch, useAppSelector, createSelector } from '@/lib/redux/hooks';
 import { 
   addItem, 
   removeItem, 
@@ -16,31 +16,52 @@ import {
 } from '@/lib/redux/slices/inventory-slice';
 import type { Item, ItemEffect, ItemType, EffectType } from '@/lib/types/item-types';
 import { calculateTotalItemEffect, hasItemEffect } from '@/lib/utils/game-utils';
+import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
 // Create memoized selectors
-const selectInventoryItems = createSelector(state => state.inventory.items);
-const selectActiveItemIds = createSelector(state => state.inventory.activeItems);
-const selectActiveEffects = createSelector(state => state.inventory.activeEffects);
-const selectInventoryStatus = createSelector(state => ({
-  selectedItemId: state.inventory.selectedItemId,
-  capacity: state.inventory.capacity,
-  isFull: state.inventory.items.length >= state.inventory.capacity
-}));
+const selectInventoryItems = createSelector(
+  state => state.inventory.items,
+  items => items
+);
+
+const selectActiveItemIds = createSelector(
+  state => state.inventory.activeItems,
+  activeItems => activeItems
+);
+
+const selectActiveEffects = createSelector(
+  state => state.inventory.activeEffects,
+  activeEffects => activeEffects
+);
+
+const selectInventoryStatus = createSelector(
+  state => ({
+    selectedItemId: state.inventory.selectedItemId,
+    capacity: state.inventory.capacity,
+    isFull: state.inventory.items.length >= state.inventory.capacity
+  }),
+  status => status
+);
 
 // Group items by type
-const selectItemsByType = createSelector(state => {
-  const byType = {} as Record<ItemType, Item[]>;
-  state.inventory.items.forEach(item => {
-    if (!byType[item.type]) {
-      byType[item.type] = [];
-    }
-    byType[item.type].push(item);
-  });
-  return byType;
-});
+const selectItemsByType = createSelector(
+  state => state.inventory.items,
+  items => {
+    const byType = {} as Record<ItemType, Item[]>;
+    items.forEach(item => {
+      if (!byType[item.type]) {
+        byType[item.type] = [];
+      }
+      byType[item.type].push(item);
+    });
+    return byType;
+  }
+);
 
 /**
  * Hook for managing inventory and items
+ * 
+ * @returns Inventory state and methods for interacting with it
  */
 export function useInventory() {
   const dispatch = useAppDispatch();
@@ -54,79 +75,113 @@ export function useInventory() {
   
   // Item management
   const addInventoryItem = useCallback((item: Item) => {
-    if (items.length < capacity) {
-      dispatch(addItem(item));
-      return true;
-    }
-    return false;
+    return tryCatch(() => {
+      if (items.length < capacity) {
+        dispatch(addItem(item));
+        return true;
+      }
+      return false;
+    }, false, ErrorCode.INVENTORY_FULL);
   }, [dispatch, items.length, capacity]);
   
   const removeInventoryItem = useCallback((itemId: string) => {
-    dispatch(removeItem(itemId));
+    tryCatch(() => {
+      dispatch(removeItem(itemId));
+    }, undefined, ErrorCode.INVENTORY_ERROR);
   }, [dispatch]);
   
   const useInventoryItem = useCallback((itemId: string) => {
-    dispatch(useItem(itemId));
+    tryCatch(() => {
+      dispatch(useItem(itemId));
+    }, undefined, ErrorCode.INVENTORY_ERROR);
   }, [dispatch]);
   
   const activateInventoryItem = useCallback((itemId: string) => {
-    dispatch(activateItem(itemId));
+    tryCatch(() => {
+      dispatch(activateItem(itemId));
+    }, undefined, ErrorCode.INVENTORY_ERROR);
   }, [dispatch]);
   
   const deactivateInventoryItem = useCallback((itemId: string) => {
-    dispatch(deactivateItem(itemId));
+    tryCatch(() => {
+      dispatch(deactivateItem(itemId));
+    }, undefined, ErrorCode.INVENTORY_ERROR);
   }, [dispatch]);
   
   const selectInventoryItem = useCallback((itemId: string | null) => {
-    dispatch(selectItem(itemId));
+    tryCatch(() => {
+      dispatch(selectItem(itemId));
+    }, undefined, ErrorCode.INVENTORY_ERROR);
   }, [dispatch]);
   
   const purchaseInventoryItem = useCallback((itemId: string) => {
-    dispatch(purchaseItem(itemId));
+    tryCatch(() => {
+      dispatch(purchaseItem(itemId));
+    }, undefined, ErrorCode.INVENTORY_ERROR);
   }, [dispatch]);
   
   const clearAllItems = useCallback(() => {
-    dispatch(clearInventory());
+    tryCatch(() => {
+      dispatch(clearInventory());
+    }, undefined, ErrorCode.INVENTORY_ERROR);
   }, [dispatch]);
   
   const expandCapacity = useCallback((amount: number) => {
-    dispatch(increaseCapacity(amount));
+    tryCatch(() => {
+      dispatch(increaseCapacity(amount));
+    }, undefined, ErrorCode.INVENTORY_ERROR);
   }, [dispatch]);
   
   const updateEffectDurations = useCallback(() => {
-    dispatch(decrementEffectDurations());
+    tryCatch(() => {
+      dispatch(decrementEffectDurations());
+    }, undefined, ErrorCode.INVENTORY_ERROR);
   }, [dispatch]);
   
   // Helper methods
   const getItemById = useCallback((itemId: string): Item | undefined => {
-    return items.find(item => item.id === itemId);
+    return tryCatch(() => {
+      return items.find(item => item.id === itemId);
+    }, undefined, ErrorCode.ITEM_NOT_FOUND);
   }, [items]);
   
   const getItemsByType = useCallback((type: ItemType): Item[] => {
-    return itemsByType[type] || [];
+    return tryCatch(() => {
+      return itemsByType[type] || [];
+    }, [], ErrorCode.INVENTORY_ERROR);
   }, [itemsByType]);
   
   const isItemActive = useCallback((itemId: string): boolean => {
-    return activeItemIds.includes(itemId);
+    return tryCatch(() => {
+      return activeItemIds.includes(itemId);
+    }, false, ErrorCode.INVENTORY_ERROR);
   }, [activeItemIds]);
   
   const getActiveItems = useCallback((): Item[] => {
-    return items.filter(item => activeItemIds.includes(item.id));
+    return tryCatch(() => {
+      return items.filter(item => activeItemIds.includes(item.id));
+    }, [], ErrorCode.INVENTORY_ERROR);
   }, [items, activeItemIds]);
   
   // Effect calculations
   const getEffectValue = useCallback((targetType: string, modifierType: string): number => {
-    const activeItems = getActiveItems();
-    return calculateTotalItemEffect(activeItems, targetType, modifierType);
+    return tryCatch(() => {
+      const activeItems = getActiveItems();
+      return calculateTotalItemEffect(activeItems, targetType, modifierType);
+    }, 0, ErrorCode.INVENTORY_ERROR);
   }, [getActiveItems]);
   
   const hasEffect = useCallback((targetType: string, modifierType: string): boolean => {
-    const activeItems = getActiveItems();
-    return hasItemEffect(activeItems, targetType, modifierType);
+    return tryCatch(() => {
+      const activeItems = getActiveItems();
+      return hasItemEffect(activeItems, targetType, modifierType);
+    }, false, ErrorCode.INVENTORY_ERROR);
   }, [getActiveItems]);
   
   const getEffectsByType = useCallback((effectType: EffectType) => {
-    return activeEffects.filter(effect => effect.type === effectType);
+    return tryCatch(() => {
+      return activeEffects.filter(effect => effect.type === effectType);
+    }, [], ErrorCode.INVENTORY_ERROR);
   }, [activeEffects]);
   
   return {

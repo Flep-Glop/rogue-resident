@@ -1,134 +1,116 @@
+// lib/utils/error-handlers.ts
+'use client';
+
 /**
- * Error types for different parts of the application
+ * Custom error class for game-related errors
  */
-export enum ErrorType {
-    GAME = 'GAME',
-    MAP = 'MAP',
-    NODE = 'NODE',
-    CHALLENGE = 'CHALLENGE',
-    INVENTORY = 'INVENTORY',
-    SAVE_LOAD = 'SAVE_LOAD',
-    NETWORK = 'NETWORK',
-    UNKNOWN = 'UNKNOWN'
+export class GameError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly context?: Record<string, any>
+  ) {
+    super(message);
+    this.name = 'GameError';
   }
+}
+
+/**
+ * Error codes for different categories of errors
+ */
+export enum ErrorCode {
+  // General errors
+  GENERAL_ERROR = 'GENERAL_ERROR',
+  NOT_INITIALIZED = 'NOT_INITIALIZED',
   
-  /**
-   * Custom error class for application errors
-   */
-  export class AppError extends Error {
-    type: ErrorType;
-    code?: string;
-    data?: any;
-    
-    constructor(message: string, type: ErrorType = ErrorType.UNKNOWN, code?: string, data?: any) {
-      super(message);
-      this.name = 'AppError';
-      this.type = type;
-      this.code = code;
-      this.data = data;
-      
-      // Capture stack trace in modern environments
-      if (Error.captureStackTrace) {
-        Error.captureStackTrace(this, AppError);
-      }
-    }
-  }
+  // Game state errors
+  GAME_STATE_ERROR = 'GAME_STATE_ERROR',
+  INVALID_STATE_TRANSITION = 'INVALID_STATE_TRANSITION',
   
-  /**
-   * Handles errors in async functions and returns a consistent result
-   * 
-   * @param promise The promise to handle
-   * @returns [data, error] tuple
-   */
-  export async function handleAsyncError<T>(
-    promise: Promise<T>
-  ): Promise<[T | null, AppError | null]> {
-    try {
-      const data = await promise;
-      return [data, null];
-    } catch (error) {
-      if (error instanceof AppError) {
-        return [null, error];
-      }
-      
-      let appError: AppError;
-      
-      if (error instanceof Error) {
-        appError = new AppError(error.message, ErrorType.UNKNOWN);
-        appError.stack = error.stack;
-      } else {
-        appError = new AppError(String(error), ErrorType.UNKNOWN);
-      }
-      
-      return [null, appError];
-    }
-  }
+  // Node errors
+  NODE_ERROR = 'NODE_ERROR',
+  NODE_NOT_FOUND = 'NODE_NOT_FOUND',
+  NODE_UNAVAILABLE = 'NODE_UNAVAILABLE',
   
-  /**
-   * Safely runs a function that might throw and returns the result or null
-   * 
-   * @param fn The function to run
-   * @param fallback Optional fallback value if the function throws
-   * @returns The result of the function or the fallback value
-   */
-  export function tryCatch<T, F = null>(
-    fn: () => T,
-    fallback: F = null as unknown as F
-  ): T | F {
-    try {
-      return fn();
-    } catch (error) {
-      console.error('Error caught in tryCatch:', error);
-      return fallback;
-    }
-  }
+  // Challenge errors
+  CHALLENGE_ERROR = 'CHALLENGE_ERROR',
+  CHALLENGE_NOT_FOUND = 'CHALLENGE_NOT_FOUND',
+  INVALID_CHALLENGE_STATE = 'INVALID_CHALLENGE_STATE',
   
-  /**
-   * Error reporter function - can be configured to send errors to a monitoring service
-   * 
-   * @param error The error to report
-   * @param context Additional context about the error
-   */
-  export function reportError(error: Error | AppError, context: Record<string, any> = {}) {
-    // In development, log to console
-    if (process.env.NODE_ENV === 'development') {
-      console.group('Application Error:');
-      console.error(error);
-      console.info('Context:', context);
-      console.groupEnd();
-      return;
-    }
-    
-    // In production, this could send to an error monitoring service
-    // Example: sendToErrorService(error, context);
-    console.error('Application Error:', error, context);
-  }
+  // Inventory errors
+  INVENTORY_ERROR = 'INVENTORY_ERROR',
+  INVENTORY_FULL = 'INVENTORY_FULL',
+  ITEM_NOT_FOUND = 'ITEM_NOT_FOUND',
   
-  /**
-   * Create a version of a function that catches errors and reports them
-   * 
-   * @param fn The function to wrap
-   * @param errorHandler Optional custom error handler
-   * @returns The wrapped function
-   */
-  export function withErrorHandling<T extends (...args: any[]) => any>(
-    fn: T,
-    errorHandler?: (error: Error, ...args: Parameters<T>) => ReturnType<T>
-  ): (...args: Parameters<T>) => ReturnType<T> {
-    return (...args: Parameters<T>): ReturnType<T> => {
-      try {
-        return fn(...args);
-      } catch (error) {
-        if (errorHandler && error instanceof Error) {
-          return errorHandler(error, ...args);
-        }
-        
-        reportError(
-          error instanceof Error ? error : new Error(String(error)),
-          { functionName: fn.name, arguments: args }
-        );
-        
-        throw error;
-      }
-    };
+  // Save/Load errors
+  SAVE_ERROR = 'SAVE_ERROR',
+  LOAD_ERROR = 'LOAD_ERROR',
+  INVALID_SAVE_DATA = 'INVALID_SAVE_DATA',
+  
+  // Timer errors
+  TIMER_ERROR = 'TIMER_ERROR',
+  INVALID_TIMER_STATE = 'INVALID_TIMER_STATE'
+}
+
+/**
+ * Utility function to safely execute a function and return a fallback value if it throws
+ * @param fn Function to execute
+ * @param fallback Fallback value to return if the function throws
+ * @param errorCode Optional error code for logging
+ * @returns Result of the function or fallback
+ */
+export function tryCatch<T>(fn: () => T, fallback: T, errorCode = ErrorCode.GENERAL_ERROR): T {
+  try {
+    return fn();
+  } catch (error) {
+    console.error(
+      `[Rogue Resident] Error ${errorCode}:`, 
+      error instanceof Error ? error.message : 'Unknown error',
+      error
+    );
+    return fallback;
   }
+}
+
+/**
+ * Utility function to safely execute an async function and return a fallback value if it throws
+ * @param fn Async function to execute
+ * @param fallback Fallback value to return if the function throws
+ * @param errorCode Optional error code for logging
+ * @returns Promise that resolves to the result of the function or fallback
+ */
+export async function tryCatchAsync<T>(
+  fn: () => Promise<T>, 
+  fallback: T, 
+  errorCode = ErrorCode.GENERAL_ERROR
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(
+      `[Rogue Resident] Error ${errorCode}:`, 
+      error instanceof Error ? error.message : 'Unknown error',
+      error
+    );
+    return fallback;
+  }
+}
+
+/**
+ * Utility function to log errors without affecting execution
+ * @param fn Function to execute
+ * @param errorCode Optional error code for logging
+ * @returns Result of the function
+ */
+export function logErrors<T>(fn: () => T, errorCode = ErrorCode.GENERAL_ERROR): T {
+  try {
+    return fn();
+  } catch (error) {
+    console.error(
+      `[Rogue Resident] Error ${errorCode}:`, 
+      error instanceof Error ? error.message : 'Unknown error',
+      error
+    );
+    throw error; // Re-throw the error after logging
+  }
+}
