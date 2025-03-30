@@ -7,7 +7,8 @@ import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 import type { 
   ChallengeGrade, 
   ChallengeStatus, 
-  ChallengeType 
+  ChallengeType,
+  ChallengeStage
 } from '@/lib/types/challenge-types';
 import type { 
   MapNode, 
@@ -216,8 +217,8 @@ export const selectCurrentNode = createSelector(
     (state: RootState) => state.map.nodes,
     (state: RootState) => state.map.currentNodeId
   ],
-  (nodes, currentNodeId) => 
-    currentNodeId ? nodes.find(node => node.id === currentNodeId) || null : null
+  (nodes: MapNode[], currentNodeId: string | null): MapNode | null => 
+    currentNodeId ? nodes.find((node: MapNode): boolean => node.id === currentNodeId) || null : null
 );
 
 /**
@@ -228,7 +229,9 @@ export const selectNodesByStatus = createSelector(
     (state: RootState) => state.map.nodes,
     (state: RootState, status: NodeStatus) => status
   ],
-  (nodes, status) => nodes.filter(node => node.status === status)
+  (nodes: MapNode[], status: NodeStatus): MapNode[] => {
+    return nodes.filter((node: MapNode): boolean => node.status === status);
+  }
 );
 
 /**
@@ -236,8 +239,8 @@ export const selectNodesByStatus = createSelector(
  */
 export const selectAccessibleNodes = createSelector(
   [(state: RootState) => state.map.unlockedNodeIds, (state: RootState) => state.map.nodes],
-  (unlockedNodeIds, nodes) => 
-    nodes.filter(node => unlockedNodeIds.includes(node.id))
+  (unlockedNodeIds: string[], nodes: MapNode[]): MapNode[] => 
+    nodes.filter((node: MapNode): boolean => unlockedNodeIds.includes(node.id))
 );
 
 /**
@@ -514,8 +517,8 @@ export const selectActiveItems = createSelector(
     (state: RootState) => state.inventory.items,
     (state: RootState) => state.inventory.activeItems
   ],
-  (items, activeItemIds) => 
-    items.filter(item => activeItemIds.includes(item.id))
+  (items: Item[], activeItemIds: string[]): Item[] => 
+    items.filter((item: Item): boolean => activeItemIds.includes(item.id))
 );
 
 /**
@@ -538,8 +541,8 @@ export const selectItemsByType = createSelector(
     (state: RootState) => state.inventory.items,
     (state: RootState, itemType: ItemType) => itemType
   ],
-  (items, itemType) => 
-    items.filter(item => item.type === itemType)
+  (items: Item[], itemType: ItemType): Item[] => 
+    items.filter((item: Item): boolean => item.type === itemType)
 );
 
 /**
@@ -649,8 +652,8 @@ export const selectSaveById = createSelector(
     (state: RootState) => state.saveLoad.saves,
     (state: RootState, saveId: string) => saveId
   ],
-  (saves, saveId) => 
-    saves.find(save => save.id === saveId) || null
+  (saves: SaveSlot[], saveId: string): SaveSlot | null => 
+    saves.find((save: SaveSlot): boolean => save.id === saveId) || null
 );
 
 /**
@@ -741,9 +744,9 @@ export const selectCurrentNodeWithInteraction = createSelector(
     (state: RootState) => state.node.isInteracting,
     (state: RootState) => state.node.interactionStage
   ],
-  (nodes, currentNodeId, isInteracting, interactionStage) => {
+  (nodes: MapNode[], currentNodeId: string | null, isInteracting: boolean, interactionStage: ChallengeStage | null) => {
     const currentNode = currentNodeId 
-      ? nodes.find(node => node.id === currentNodeId) || null 
+      ? nodes.find((node: MapNode): boolean => node.id === currentNodeId) || null 
       : null;
       
     return {

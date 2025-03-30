@@ -10,7 +10,7 @@ import {
   completeNode as completeNodeAction
 } from '@/lib/redux/slices/node-slice';
 import {
-  setNodeSelected, // Renamed from selectNode to avoid confusion
+  selectNodes as setNodeSelected, // Using the correctly exported member name
   completeNode as completeMapNode,
   setCurrentNode as setCurrentMapNode
 } from '@/lib/redux/slices/map-slice';

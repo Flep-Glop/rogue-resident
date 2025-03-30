@@ -16,9 +16,10 @@ import type {
 import type { 
   Challenge, 
   ChallengeType, 
-  ChallengeState, 
   ChallengeGrade, 
-  ChallengeStage 
+  ChallengeStage,
+  ChallengeStatus,
+  // Note: We're explicitly NOT importing ChallengeState here to avoid conflicts
 } from './challenge-types';
 import type { 
   Item, 
@@ -94,7 +95,7 @@ export interface NodeState {
 }
 
 /**
- * Challenge slice state
+ * Challenge slice state (definition here to avoid circular imports)
  */
 export interface ChallengeState {
   currentChallengeId: string | null;
@@ -114,7 +115,7 @@ export interface ChallengeState {
   insightReward: number;
   itemReward: string | null;
   timeRemaining: number;
-  challengeState: ChallengeState;
+  challengeStatus: ChallengeStatus;
   isCompleted: boolean;
   feedback: string;
   challengeHistory: {

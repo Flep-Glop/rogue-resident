@@ -18,7 +18,7 @@ import type { SaveSlot } from '@/lib/types/game-types';
 import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, tryCatchAsync, ErrorCode } from '@/lib/utils/error-handlers';
 
-// Import the actual async thunks - Replace with your actual imports
+// Import the actual async thunks
 import { 
   saveGame as saveGameThunk,
   loadGame as loadGameThunk, 
@@ -221,14 +221,20 @@ export function useSaveLoad(): UseSaveLoadReturn {
    * 
    * @returns Promise that resolves when the save is complete
    */
-  const saveGame = useCallback((): Promise<void> => {
-    return tryCatchAsync(async () => {
+  const saveGame = useCallback(async (): Promise<void> => {
+    try {
       const resultAction = await dispatch(saveGameThunk());
       // Check if it's a rejected action
       if (saveGameThunk.rejected.match(resultAction)) {
         throw new Error(resultAction.error.message);
       }
-    }, Promise.resolve(), ErrorCode.SAVE_ERROR);
+    } catch (error) {
+      console.error(
+        `[Rogue Resident] Error ${ErrorCode.SAVE_ERROR}:`, 
+        error instanceof Error ? error.message : 'Unknown error',
+        error
+      );
+    }
   }, [dispatch]);
   
   /**
@@ -236,14 +242,20 @@ export function useSaveLoad(): UseSaveLoadReturn {
    * 
    * @returns Promise that resolves when the load is complete
    */
-  const loadGame = useCallback((): Promise<void> => {
-    return tryCatchAsync(async () => {
+  const loadGame = useCallback(async (): Promise<void> => {
+    try {
       const resultAction = await dispatch(loadGameThunk());
       // Check if it's a rejected action
       if (loadGameThunk.rejected.match(resultAction)) {
         throw new Error(resultAction.error.message);
       }
-    }, Promise.resolve(), ErrorCode.LOAD_ERROR);
+    } catch (error) {
+      console.error(
+        `[Rogue Resident] Error ${ErrorCode.LOAD_ERROR}:`, 
+        error instanceof Error ? error.message : 'Unknown error',
+        error
+      );
+    }
   }, [dispatch]);
   
   /**
@@ -251,14 +263,20 @@ export function useSaveLoad(): UseSaveLoadReturn {
    * 
    * @returns Promise that resolves when the delete is complete
    */
-  const deleteSave = useCallback((): Promise<void> => {
-    return tryCatchAsync(async () => {
+  const deleteSave = useCallback(async (): Promise<void> => {
+    try {
       const resultAction = await dispatch(deleteSaveThunk());
       // Check if it's a rejected action
       if (deleteSaveThunk.rejected.match(resultAction)) {
         throw new Error(resultAction.error.message);
       }
-    }, Promise.resolve(), ErrorCode.DELETE_SAVE_ERROR);
+    } catch (error) {
+      console.error(
+        `[Rogue Resident] Error ${ErrorCode.DELETE_SAVE_ERROR}:`, 
+        error instanceof Error ? error.message : 'Unknown error',
+        error
+      );
+    }
   }, [dispatch]);
   
   /**
