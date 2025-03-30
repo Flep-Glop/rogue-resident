@@ -16,21 +16,6 @@ export type GameStatus = 'idle' | 'playing' | 'paused' | 'complete' | 'game-over
 export type CharacterType = 'resident' | 'researcher' | 'specialist' | 'regulator';
 
 /**
- * Character definition
- */
-export interface Character {
-  id: string;
-  type: CharacterType;
-  name: string;
-  description: string;
-  startingHealth: number;
-  startingInsight: number;
-  specialAbilities: Ability[];
-  portrait: string;
-  flavorText?: string;
-}
-
-/**
  * Character ability
  */
 export interface Ability {
@@ -41,6 +26,35 @@ export interface Ability {
   currentCooldown: number;
   isAvailable: boolean;
   effect: (state: any) => any; // Generic effect function, actual implementation will be more specific
+}
+
+/**
+ * Character definition
+ */
+export interface Character {
+  id: string;
+  type: CharacterType;
+  name: string;
+  description: string;
+  abilities: Ability[];
+  // Additional required properties
+  startingHealth: number;
+  startingInsight: number;
+  specialAbilities: Ability[];
+  portrait: string;
+  flavorText?: string;
+}
+
+/**
+ * Simplified Character for game state
+ * Used in the Redux store to avoid circular references
+ */
+export interface GameCharacter {
+  id: string;
+  type: CharacterType;
+  name: string;
+  description: string;
+  abilities: Ability[];
 }
 
 /**

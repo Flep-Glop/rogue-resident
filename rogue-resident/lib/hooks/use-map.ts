@@ -13,43 +13,45 @@ import {
 } from '@/lib/redux/slices/map-slice';
 import type { MapNode, MapEdge, MapGenerationOptions } from '@/lib/types/map-types';
 import type { Difficulty } from '@/lib/types/game-types';
+import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
 // Create memoized selectors
 const selectMapNodes = createSelector(
-  [(state) => state.map.nodes],
+  [(state: RootState) => state.map.nodes],
   (nodes) => nodes
 );
 
 const selectMapEdges = createSelector(
-  [(state) => state.map.edges],
+  [(state: RootState) => state.map.edges],
   (edges) => edges
 );
 
 const selectMapInfo = createSelector(
-  [(state) => state.map],
+  [(state: RootState) => state.map],
   (map) => ({
     currentNodeId: map.currentNodeId,
     startNodeId: map.startNodeId,
     bossNodeId: map.bossNodeId,
     floorLevel: map.floorLevel,
-    isMapGenerated: map.isMapGenerated
+    isMapGenerated: map.isGenerated,
+    unlockedNodeIds: map.unlockedNodeIds
   })
 );
 
 const selectCurrentMapNode = createSelector(
-  [(state) => state.map.currentNodeId, (state) => state.map.nodes],
+  [(state: RootState) => state.map.currentNodeId, (state: RootState) => state.map.nodes],
   (currentNodeId, nodes) => 
     currentNodeId ? nodes.find(node => node.id === currentNodeId) || null : null
 );
 
 const selectAvailableNodes = createSelector(
-  [(state) => state.map.nodes],
+  [(state: RootState) => state.map.nodes],
   (nodes) => nodes.filter(node => node.status === 'available')
 );
 
 const selectCompletedNodes = createSelector(
-  [(state) => state.map.nodes],
+  [(state: RootState) => state.map.nodes],
   (nodes) => nodes.filter(node => node.status === 'completed')
 );
 
@@ -68,6 +70,7 @@ interface UseMapReturn {
   currentNode: MapNode | null;
   availableNodes: MapNode[];
   completedNodes: MapNode[];
+  unlockedNodeIds: string[];
   
   // Actions
   generateMap: (options: MapGenerationOptions) => void;
@@ -99,7 +102,14 @@ export function useMap(): UseMapReturn {
   // Get state from selectors
   const nodes = useAppSelector(selectMapNodes);
   const edges = useAppSelector(selectMapEdges);
-  const { currentNodeId, startNodeId, bossNodeId, floorLevel, isMapGenerated } = useAppSelector(selectMapInfo);
+  const { 
+    currentNodeId, 
+    startNodeId, 
+    bossNodeId, 
+    floorLevel, 
+    isMapGenerated,
+    unlockedNodeIds
+  } = useAppSelector(selectMapInfo);
   const currentNode = useAppSelector(selectCurrentMapNode);
   const availableNodes = useAppSelector(selectAvailableNodes);
   const completedNodes = useAppSelector(selectCompletedNodes);
@@ -151,9 +161,11 @@ export function useMap(): UseMapReturn {
    */
   const completeCurrentMapNode = useCallback((): void => {
     tryCatch(() => {
-      dispatch(completeCurrentNode());
+      if (currentNodeId) {
+        dispatch(completeCurrentNode());
+      }
     }, undefined, ErrorCode.NODE_COMPLETION_ERROR);
-  }, [dispatch]);
+  }, [dispatch, currentNodeId]);
   
   /**
    * Advances to the next floor and resets the map
@@ -161,7 +173,7 @@ export function useMap(): UseMapReturn {
   const goToNextFloor = useCallback((): void => {
     tryCatch(() => {
       dispatch(incrementFloor());
-      // Generate a new map for the next floor
+      // Reset map for the next floor
       dispatch(resetMap());
     }, undefined, ErrorCode.FLOOR_PROGRESSION_ERROR);
   }, [dispatch]);
@@ -185,10 +197,9 @@ export function useMap(): UseMapReturn {
    */
   const isNodeAccessible = useCallback((nodeId: string): boolean => {
     return tryCatch(() => {
-      const node = nodes.find(n => n.id === nodeId);
-      return node?.status === 'available' || node?.status === 'current';
-    }, false, ErrorCode.NODE_ERROR);
-  }, [nodes]);
+      return unlockedNodeIds.includes(nodeId);
+    }, false, ErrorCode.NODE_ACCESS_ERROR);
+  }, [unlockedNodeIds]);
   
   /**
    * Gets a node by its ID
@@ -254,6 +265,7 @@ export function useMap(): UseMapReturn {
     currentNode,
     availableNodes,
     completedNodes,
+    unlockedNodeIds,
     
     // Actions
     generateMap,

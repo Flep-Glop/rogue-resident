@@ -47,9 +47,9 @@ export type BossChallengeType =
   | 'resolution';
 
 /**
- * Challenge state in the game
+ * Challenge status in the game
  */
-export type ChallengeState = 
+export type ChallengeStatus = 
   | 'inactive' 
   | 'active' 
   | 'completed' 
@@ -173,4 +173,30 @@ export interface ChallengeResult {
   insightEarned: number;
   itemsEarned: string[];
   feedback: string;
+}
+
+/**
+ * Challenge state interface for Redux
+ */
+export interface ChallengeState {
+  currentChallengeId: string | null;
+  challengeType: ChallengeType | null;
+  title: string;
+  description: string;
+  difficulty: Difficulty | null;
+  currentStage: ChallengeStage | null;
+  stages: ChallengeStageInfo[];
+  userResponses: Record<string, any>;
+  overallGrade: ChallengeGrade | null;
+  insightReward: number;
+  itemReward: string | null;
+  timeRemaining: number;
+  challengeStatus: ChallengeStatus; // Renamed from challengeState to avoid confusion
+  isCompleted: boolean;
+  feedback: string;
+  challengeHistory: {
+    nodeId: string;
+    challengeId: string;
+    grade: ChallengeGrade | null;
+  }[];
 }

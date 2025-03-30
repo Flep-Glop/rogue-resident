@@ -40,8 +40,7 @@ export function useLocalStorage<T>(
     if (typeof window !== 'undefined') {
       setStoredValue(readValue());
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [readValue]);
   
   /**
    * Return a wrapped version of useState's setter function that

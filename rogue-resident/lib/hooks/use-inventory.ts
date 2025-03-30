@@ -15,27 +15,65 @@ import {
   purchaseItem
 } from '@/lib/redux/slices/inventory-slice';
 import type { Item, ItemEffect, ItemType, EffectType } from '@/lib/types/item-types';
-import { calculateTotalItemEffect, hasItemEffect } from '@/lib/utils/game-utils';
+import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
+
+/**
+ * Calculates the total effect value for a specific target and modifier type
+ * 
+ * @param items - The items to calculate effects from
+ * @param targetType - The target type to calculate for
+ * @param modifierType - The modifier type to calculate for
+ * @returns The total effect value
+ */
+function calculateTotalItemEffect(items: Item[], targetType: string, modifierType: string): number {
+  return items.reduce((total, item) => {
+    if (!item.effects) return total;
+    
+    const matchingEffects = item.effects.filter(effect => 
+      effect.target === targetType && effect.type === modifierType && effect.isActive !== false
+    );
+    
+    return total + matchingEffects.reduce((sum, effect) => sum + (typeof effect.value === 'number' ? effect.value : 0), 0);
+  }, 0);
+}
+
+/**
+ * Checks if there are any effects for a specific target and modifier type
+ * 
+ * @param items - The items to check effects from
+ * @param targetType - The target type to check for
+ * @param modifierType - The modifier type to check for
+ * @returns Whether any effects exist for the specified types
+ */
+function hasItemEffect(items: Item[], targetType: string, modifierType: string): boolean {
+  return items.some(item => 
+    item.effects?.some(effect => 
+      effect.target === targetType && 
+      effect.type === modifierType && 
+      effect.isActive !== false
+    )
+  );
+}
 
 // Create memoized selectors
 const selectInventoryItems = createSelector(
-  [(state) => state.inventory.items],
+  [(state: RootState) => state.inventory.items],
   (items) => items
 );
 
 const selectActiveItemIds = createSelector(
-  [(state) => state.inventory.activeItems],
+  [(state: RootState) => state.inventory.activeItems],
   (activeItems) => activeItems
 );
 
 const selectActiveEffects = createSelector(
-  [(state) => state.inventory.activeEffects],
+  [(state: RootState) => state.inventory.activeEffects],
   (activeEffects) => activeEffects
 );
 
 const selectInventoryStatus = createSelector(
-  [(state) => state.inventory],
+  [(state: RootState) => state.inventory],
   (inventory) => ({
     selectedItemId: inventory.selectedItemId,
     capacity: inventory.capacity,
@@ -45,15 +83,23 @@ const selectInventoryStatus = createSelector(
 
 // Group items by type
 const selectItemsByType = createSelector(
-  [(state) => state.inventory.items],
+  [(state: RootState) => state.inventory.items],
   (items) => {
     const byType: Record<ItemType, Item[]> = {} as Record<ItemType, Item[]>;
-    items.forEach((item) => {
-      if (!byType[item.type]) {
-        byType[item.type] = [];
-      }
-      byType[item.type].push(item);
+    const itemTypes: ItemType[] = ['knowledge', 'technical', 'teaching', 'personal', 'special'];
+    
+    // Initialize all item types with empty arrays
+    itemTypes.forEach(type => {
+      byType[type] = [];
     });
+    
+    // Add items to their respective type arrays
+    items.forEach((item) => {
+      if (item.type && byType[item.type]) {
+        byType[item.type].push(item);
+      }
+    });
+    
     return byType;
   }
 );

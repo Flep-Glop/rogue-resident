@@ -1,15 +1,7 @@
-// lib/hooks/use-redux-hooks.ts
 'use client';
 
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
-import { 
-  useCallback, 
-  useMemo 
-} from 'react';
-import { 
-  createSelector as createReduxSelector, 
-  Selector 
-} from '@reduxjs/toolkit';
+import { createSelector as createReduxSelector } from '@reduxjs/toolkit';
 import type { AppDispatch, RootState } from '../redux/store';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
@@ -55,7 +47,7 @@ export const useGameStatus = (): string =>
 export const usePlayerStats = () => 
   useAppSelector((state) => tryCatch(
     () => state.game.player,
-    { lives: 0, maxLives: 0 },
+    { health: 0, maxHealth: 0, insight: 0 },
     ErrorCode.SELECTOR_ERROR
   ));
 
@@ -72,13 +64,13 @@ export const useGameInsight = (): number =>
   ));
 
 /**
- * Get the player's current lives
+ * Get the player's current health
  * 
- * @returns The player's remaining lives
+ * @returns The player's remaining health
  */
-export const usePlayerLives = (): number => 
+export const usePlayerHealth = (): number => 
   useAppSelector((state) => tryCatch(
-    () => state.game.player.lives,
+    () => state.game.player.health,
     0,
     ErrorCode.SELECTOR_ERROR
   ));
@@ -148,12 +140,12 @@ export const useSelectedNode = (): string | null =>
 /**
  * Get the current node interaction state
  * 
- * @returns The node interaction state
+ * @returns The node interaction stage
  */
-export const useNodeInteraction = (): string => 
+export const useNodeInteractionStage = (): string | null => 
   useAppSelector((state) => tryCatch(
-    () => state.node.nodeInteraction,
-    'idle',
+    () => state.node.interactionStage,
+    null,
     ErrorCode.SELECTOR_ERROR
   ));
 
@@ -164,20 +156,20 @@ export const useNodeInteraction = (): string =>
  */
 export const useCurrentNodeType = (): string | null => 
   useAppSelector((state) => tryCatch(
-    () => state.node.currentNodeType,
+    () => state.node.nodeType,
     null,
     ErrorCode.SELECTOR_ERROR
   ));
 
 // Challenge selectors
 /**
- * Get the current challenge data
+ * Get the current challenge ID
  * 
- * @returns The current challenge object
+ * @returns The current challenge ID or null
  */
-export const useCurrentChallenge = () => 
+export const useCurrentChallengeId = (): string | null => 
   useAppSelector((state) => tryCatch(
-    () => state.challenge.currentChallenge,
+    () => state.challenge.currentChallengeId,
     null,
     ErrorCode.SELECTOR_ERROR
   ));
@@ -189,20 +181,20 @@ export const useCurrentChallenge = () =>
  */
 export const useChallengeGrade = (): string | null => 
   useAppSelector((state) => tryCatch(
-    () => state.challenge.grade,
+    () => state.challenge.overallGrade,
     null,
     ErrorCode.SELECTOR_ERROR
   ));
 
 /**
- * Get the challenge feedback
+ * Get the challenge state
  * 
- * @returns The feedback for the current challenge
+ * @returns The current challenge state
  */
-export const useChallengeFeedback = (): string => 
+export const useChallengeState = (): string => 
   useAppSelector((state) => tryCatch(
-    () => state.challenge.feedback,
-    '',
+    () => state.challenge.challengeState,
+    'inactive',
     ErrorCode.SELECTOR_ERROR
   ));
 
@@ -251,19 +243,19 @@ export const useSelectedItem = (): string | null =>
  */
 export const useSaveSlots = () => 
   useAppSelector((state) => tryCatch(
-    () => state.saveLoad.saveSlots,
+    () => state.saveLoad.saves,
     [],
     ErrorCode.SELECTOR_ERROR
   ));
 
 /**
- * Get the current save slot
+ * Get the current save ID
  * 
- * @returns The current save slot
+ * @returns The current save ID
  */
-export const useCurrentSaveSlot = () => 
+export const useCurrentSaveId = (): string | null => 
   useAppSelector((state) => tryCatch(
-    () => state.saveLoad.currentSlot,
+    () => state.saveLoad.currentSaveId,
     null,
     ErrorCode.SELECTOR_ERROR
   ));

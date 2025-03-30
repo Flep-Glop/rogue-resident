@@ -12,17 +12,23 @@ import {
   setError,
   setAutoSaveEnabled,
   setSaveMenuOpen,
-  loadSaves,
-  saveGameThunk,
-  loadGameThunk,
-  deleteSaveThunk
+  loadSaves
 } from '@/lib/redux/slices/save-load-slice';
 import type { SaveSlot } from '@/lib/types/game-types';
+import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
+
+// Import the actual async thunks
+// Replace these imports with the correct imports from your save-load-slice
+import { 
+  saveGame as saveGameThunk,
+  loadGame as loadGameThunk, 
+  deleteSave as deleteSaveThunk 
+} from '@/lib/redux/thunks/save-load-thunks';
 
 // Create memoized selectors
 const selectSaveLoadStatus = createSelector(
-  [(state) => state.saveLoad],
+  [(state: RootState) => state.saveLoad],
   (saveLoad) => ({
     isSaving: saveLoad.isSaving,
     isLoading: saveLoad.isLoading,
@@ -35,7 +41,7 @@ const selectSaveLoadStatus = createSelector(
 );
 
 const selectSaveLoadData = createSelector(
-  [(state) => state.saveLoad],
+  [(state: RootState) => state.saveLoad],
   (saveLoad) => ({
     saves: saveLoad.saves,
     currentSaveId: saveLoad.currentSaveId
@@ -218,7 +224,11 @@ export function useSaveLoad(): UseSaveLoadReturn {
    */
   const saveGame = useCallback((): Promise<void> => {
     return tryCatch(async () => {
-      return await dispatch(saveGameThunk()).unwrap();
+      const resultAction = await dispatch(saveGameThunk());
+      // Check if it's a rejected action
+      if (saveGameThunk.rejected.match(resultAction)) {
+        throw new Error(resultAction.error.message);
+      }
     }, Promise.resolve(), ErrorCode.SAVE_ERROR);
   }, [dispatch]);
   
@@ -229,7 +239,11 @@ export function useSaveLoad(): UseSaveLoadReturn {
    */
   const loadGame = useCallback((): Promise<void> => {
     return tryCatch(async () => {
-      return await dispatch(loadGameThunk()).unwrap();
+      const resultAction = await dispatch(loadGameThunk());
+      // Check if it's a rejected action
+      if (loadGameThunk.rejected.match(resultAction)) {
+        throw new Error(resultAction.error.message);
+      }
     }, Promise.resolve(), ErrorCode.LOAD_ERROR);
   }, [dispatch]);
   
@@ -240,7 +254,11 @@ export function useSaveLoad(): UseSaveLoadReturn {
    */
   const deleteSave = useCallback((): Promise<void> => {
     return tryCatch(async () => {
-      return await dispatch(deleteSaveThunk()).unwrap();
+      const resultAction = await dispatch(deleteSaveThunk());
+      // Check if it's a rejected action
+      if (deleteSaveThunk.rejected.match(resultAction)) {
+        throw new Error(resultAction.error.message);
+      }
     }, Promise.resolve(), ErrorCode.DELETE_SAVE_ERROR);
   }, [dispatch]);
   

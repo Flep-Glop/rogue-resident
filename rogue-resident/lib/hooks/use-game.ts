@@ -18,28 +18,43 @@ import {
   addScore,
   increaseMaxHealth
 } from '@/lib/redux/slices/game-slice';
-import type { Character, Difficulty } from '@/lib/types/game-types';
+import type { Character, GameCharacter, Difficulty } from '@/lib/types/game-types';
+import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
 // Memoized selectors for better performance
 const selectGameState = createSelector(
-  (state) => state.game,
+  [(state: RootState) => state.game],
   (game) => ({
     isGameStarted: game.isGameStarted,
     isGameOver: game.isGameOver,
-    playerHealth: game.playerHealth,
-    maxPlayerHealth: game.maxPlayerHealth,
-    playerInsight: game.playerInsight,
+    playerHealth: game.player.health,
+    maxPlayerHealth: game.player.maxHealth,
+    playerInsight: game.insight,
     researchPoints: game.researchPoints,
     score: game.score,
     selectedCharacterId: game.selectedCharacterId,
-    playerName: game.playerName,
+    playerName: game.player.name,
     characters: game.characters,
-    floor: game.floor,
+    floor: game.currentFloor,
     completedRuns: game.completedRuns,
     difficulty: game.difficulty
   })
 );
+
+// Helper function to convert GameCharacter to Character
+const convertToCharacter = (gameChar: GameCharacter | undefined): Character | undefined => {
+  if (!gameChar) return undefined;
+  
+  return {
+    ...gameChar,
+    startingHealth: 100, // Default values or retrieve from a constants file
+    startingInsight: 50,
+    specialAbilities: gameChar.abilities, // Might need more specific mapping
+    portrait: `/characters/${gameChar.id}.png`, // Assumes a naming convention
+    flavorText: `${gameChar.name} is ready for adventure!` // Default flavor text
+  };
+};
 
 /**
  * Interface defining the return value of the useGame hook
@@ -103,11 +118,14 @@ export function useGame(): UseGameReturn {
     score,
     selectedCharacterId,
     playerName,
-    characters,
+    characters: gameCharacters,
     floor,
     completedRuns,
     difficulty
   } = useAppSelector(selectGameState);
+  
+  // Convert GameCharacters to Characters with required fields
+  const characters = gameCharacters.map(gc => convertToCharacter(gc) as Character);
   
   /**
    * Gets the current character based on selectedCharacterId
@@ -116,11 +134,11 @@ export function useGame(): UseGameReturn {
    */
   const character = useCallback((): Character | null => {
     return tryCatch(() => {
-      return selectedCharacterId
-        ? characters.find(c => c.id === selectedCharacterId) || null
-        : null;
+      if (!selectedCharacterId) return null;
+      const gameChar = gameCharacters.find(c => c.id === selectedCharacterId);
+      return gameChar ? convertToCharacter(gameChar) as Character : null;
     }, null, ErrorCode.GAME_STATE_ERROR);
-  }, [selectedCharacterId, characters])();
+  }, [selectedCharacterId, gameCharacters])();
   
   /**
    * Selects a character for the game
@@ -298,9 +316,10 @@ export function useGame(): UseGameReturn {
    */
   const getCharacterById = useCallback((id: string): Character | undefined => {
     return tryCatch(() => {
-      return characters.find(c => c.id === id);
+      const gameChar = gameCharacters.find(c => c.id === id);
+      return gameChar ? convertToCharacter(gameChar) : undefined;
     }, undefined, ErrorCode.GAME_STATE_ERROR);
-  }, [characters]);
+  }, [gameCharacters]);
   
   return {
     // State

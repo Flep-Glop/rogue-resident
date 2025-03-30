@@ -14,16 +14,35 @@ import {
 } from '@/lib/redux/slices/challenge-slice';
 import type { 
   ChallengeType, 
-  ChallengeStage, 
+  ChallengeStage,
   ChallengeGrade,
-  ChallengeDifficulty 
+  ChallengeStageInfo,
+  ChallengeStatus
 } from '@/lib/types/challenge-types';
-import { calculateGrade } from '@/lib/utils/game-utils';
+import type { Difficulty } from '@/lib/types/game-types';
+import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
+
+/**
+ * Calculates a grade based on score
+ * 
+ * @param score - The achieved score
+ * @param maxScore - The maximum possible score
+ * @returns The calculated grade
+ */
+function calculateGrade(score: number, maxScore: number): ChallengeGrade {
+  if (score <= 0) return 'F';
+  const percentage = (score / maxScore) * 100;
+  if (percentage >= 95) return 'S';
+  if (percentage >= 85) return 'A';
+  if (percentage >= 70) return 'B';
+  if (percentage >= 50) return 'C';
+  return 'F';
+}
 
 // Create memoized selectors
 const selectChallengeState = createSelector(
-  [(state) => state.challenge],
+  [(state: RootState) => state.challenge],
   (challenge) => ({
     challengeId: challenge.currentChallengeId,
     challengeType: challenge.challengeType,
@@ -33,12 +52,12 @@ const selectChallengeState = createSelector(
     insightReward: challenge.insightReward,
     itemReward: challenge.itemReward,
     timeRemaining: challenge.timeRemaining,
-    challengeState: challenge.challengeState
+    challengeStatus: challenge.challengeStatus // Renamed from challengeState
   })
 );
 
 const selectChallengeDetails = createSelector(
-  [(state) => state.challenge],
+  [(state: RootState) => state.challenge],
   (challenge) => ({
     title: challenge.title,
     description: challenge.description,
@@ -56,7 +75,7 @@ interface ChallengeStartParams {
   totalStages: number;
   title?: string;
   description?: string;
-  difficulty?: ChallengeDifficulty;
+  difficulty?: Difficulty;
   timeLimit?: number;
 }
 
@@ -81,11 +100,11 @@ interface UseChallengeReturn {
   insightReward: number;
   itemReward: string | null;
   timeRemaining: number;
-  challengeState: string;
+  challengeStatus: ChallengeStatus;
   title: string;
   description: string;
-  difficulty: ChallengeDifficulty | null;
-  stages: any[];
+  difficulty: Difficulty | null;
+  stages: ChallengeStageInfo[];
   
   // Actions
   startChallenge: (params: ChallengeStartParams) => void;
@@ -100,7 +119,7 @@ interface UseChallengeReturn {
   // Utility
   calculateGrade: (score: number, maxScore: number) => ChallengeGrade;
   isStageCompleted: (stageId: string) => boolean;
-  getStageById: (stageId: string) => any;
+  getStageById: (stageId: string) => ChallengeStageInfo | undefined;
   isActive: () => boolean;
 }
 
@@ -125,7 +144,7 @@ export function useChallenge(): UseChallengeReturn {
     insightReward, 
     itemReward,
     timeRemaining,
-    challengeState
+    challengeStatus
   } = useAppSelector(selectChallengeState);
   
   const { title, description, difficulty, stages } = useAppSelector(selectChallengeDetails);
@@ -234,7 +253,8 @@ export function useChallenge(): UseChallengeReturn {
    */
   const isStageCompleted = useCallback((stageId: string): boolean => {
     return tryCatch(() => {
-      return !!stages.find(s => s.id === stageId && s.isCompleted);
+      const stage = stages.find((s: ChallengeStageInfo) => s.id === stageId);
+      return stage ? !!stage.isCompleted : false;
     }, false, ErrorCode.CHALLENGE_STAGE_ERROR);
   }, [stages]);
   
@@ -244,9 +264,9 @@ export function useChallenge(): UseChallengeReturn {
    * @param stageId - The ID of the stage to get
    * @returns The stage data or undefined if not found
    */
-  const getStageById = useCallback((stageId: string): any => {
+  const getStageById = useCallback((stageId: string): ChallengeStageInfo | undefined => {
     return tryCatch(() => {
-      return stages.find(s => s.id === stageId);
+      return stages.find((s: ChallengeStageInfo) => s.id === stageId);
     }, undefined, ErrorCode.CHALLENGE_STAGE_ERROR);
   }, [stages]);
   
@@ -257,9 +277,9 @@ export function useChallenge(): UseChallengeReturn {
    */
   const isActive = useCallback((): boolean => {
     return tryCatch(() => {
-      return challengeState === 'active';
+      return challengeStatus === 'active';
     }, false, ErrorCode.CHALLENGE_STATE_ERROR);
-  }, [challengeState]);
+  }, [challengeStatus]);
   
   return {
     // State
@@ -271,7 +291,7 @@ export function useChallenge(): UseChallengeReturn {
     insightReward,
     itemReward,
     timeRemaining,
-    challengeState,
+    challengeStatus,
     title,
     description,
     difficulty,

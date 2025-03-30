@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { formatTime } from '@/lib/utils/game-utils';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
 /**
@@ -39,15 +38,24 @@ export interface UseTimerReturn {
 }
 
 /**
+ * Formats time in seconds to MM:SS format
+ * 
+ * @param seconds - Time in seconds to format
+ * @returns Formatted time string
+ */
+function formatTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+/**
  * Custom hook for managing a countdown timer
  * 
  * Provides a timer with start, pause, and reset functionality, formatted time output,
  * and automatic callback when the timer reaches zero.
  * 
- * @param initialTime - Initial time in seconds
- * @param onFinish - Optional callback to run when timer finishes
- * @param autoStart - Whether to start the timer automatically
- * @param tickRate - How often to update the timer in milliseconds
+ * @param props - Timer configuration props
  * @returns Timer state and control methods
  */
 export function useTimer({
@@ -91,7 +99,7 @@ export function useTimer({
     tryCatch(() => {
       if (time <= 0 || isRunning) return;
       setIsRunning(true);
-    }, undefined, ErrorCode.TIMER_ERROR);
+    }, undefined, ErrorCode.TIMER_START_ERROR);
   }, [time, isRunning]);
   
   /**
@@ -100,7 +108,7 @@ export function useTimer({
   const pause = useCallback((): void => {
     tryCatch(() => {
       setIsRunning(false);
-    }, undefined, ErrorCode.TIMER_ERROR);
+    }, undefined, ErrorCode.TIMER_PAUSE_ERROR);
   }, []);
   
   /**
@@ -110,7 +118,7 @@ export function useTimer({
     tryCatch(() => {
       setTime(initialTime);
       setIsRunning(false);
-    }, undefined, ErrorCode.TIMER_ERROR);
+    }, undefined, ErrorCode.TIMER_RESET_ERROR);
   }, [initialTime]);
   
   // Manage the timer interval

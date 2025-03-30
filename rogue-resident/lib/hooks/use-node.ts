@@ -10,7 +10,7 @@ import {
   completeNode as completeNodeAction
 } from '@/lib/redux/slices/node-slice';
 import {
-  selectNode as selectMapNode,
+  setNodeSelected, // Renamed from selectNode to avoid confusion
   completeNode as completeMapNode,
   setCurrentNode as setCurrentMapNode
 } from '@/lib/redux/slices/map-slice';
@@ -19,12 +19,14 @@ import {
   resetChallenge
 } from '@/lib/redux/slices/challenge-slice';
 import type { NodeType, NodeStatus, MapNode } from '@/lib/types/map-types';
-import type { ChallengeType, ChallengeDifficulty } from '@/lib/types/challenge-types';
+import type { ChallengeType, ChallengeStage, ChallengeStatus } from '@/lib/types/challenge-types';
+import type { Difficulty } from '@/lib/types/game-types';
+import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
 // Create memoized selectors for better performance
 const selectNodeState = createSelector(
-  [(state) => state.node],
+  [(state: RootState) => state.node],
   (node) => ({
     isInteracting: node.isInteracting,
     selectedNodeId: node.selectedNodeId,
@@ -38,7 +40,7 @@ const selectNodeState = createSelector(
 );
 
 const selectMapState = createSelector(
-  [(state) => state.map],
+  [(state: RootState) => state.map],
   (map) => ({
     nodes: map.nodes,
     unlockedNodeIds: map.unlockedNodeIds
@@ -46,10 +48,10 @@ const selectMapState = createSelector(
 );
 
 const selectChallengeState = createSelector(
-  [(state) => state.challenge],
+  [(state: RootState) => state.challenge],
   (challenge) => ({
     currentChallengeId: challenge.currentChallengeId,
-    challengeState: challenge.challengeState
+    challengeStatus: challenge.challengeStatus // Updated from challengeState
   })
 );
 
@@ -62,7 +64,7 @@ interface ChallengeStartData {
   totalStages: number;
   title?: string;
   description?: string;
-  difficulty?: ChallengeDifficulty;
+  difficulty?: Difficulty;
   timeLimit?: number;
 }
 
@@ -74,20 +76,20 @@ interface UseNodeReturn {
   isInteracting: boolean;
   selectedNodeId: string | null;
   currentNodeId: string | null;
-  interactionStage: string;
+  interactionStage: ChallengeStage | null;
   nodeType: NodeType | null;
   nodeData: any;
-  fullNodeData: any;
+  fullNodeData: MapNode | null;
   nodeStatus: NodeStatus | null;
   isNodeActive: boolean;
   
   // Challenge-related state
   challengeId: string | null;
-  challengeState: string;
+  challengeStatus: ChallengeStatus;
   
   // Node interaction methods
   interactWithNode: (nodeId: string, type: NodeType, initialData?: any) => void;
-  setStage: (stage: string) => void;
+  setStage: (stage: ChallengeStage) => void;
   cancelInteraction: () => void;
   updateData: (data: any) => void;
   completeInteraction: (success: boolean) => void;
@@ -124,17 +126,17 @@ export function useNode(): UseNodeReturn {
   } = useAppSelector(selectNodeState);
   
   const { nodes, unlockedNodeIds } = useAppSelector(selectMapState);
-  const { currentChallengeId, challengeState } = useAppSelector(selectChallengeState);
+  const { currentChallengeId, challengeStatus } = useAppSelector(selectChallengeState);
   
   /**
    * Gets the full node data from map state if available
    * 
    * @returns The full node data or null if not found
    */
-  const fullNodeData = useCallback((): any => {
+  const fullNodeData = useCallback((): MapNode | null => {
     return tryCatch(() => {
       if (!currentNodeId) return null;
-      return nodes.find(node => node.id === currentNodeId)?.data || null;
+      return nodes.find(node => node.id === currentNodeId) || null;
     }, null, ErrorCode.NODE_ERROR);
   }, [currentNodeId, nodes])();
   
@@ -154,7 +156,7 @@ export function useNode(): UseNodeReturn {
       }
       
       // First select the node in the map state
-      dispatch(selectMapNode(nodeId));
+      dispatch(setNodeSelected(nodeId));
       
       // Then set as current node in map state
       dispatch(setCurrentMapNode(nodeId));
@@ -173,7 +175,7 @@ export function useNode(): UseNodeReturn {
    * 
    * @param stage - The stage to set
    */
-  const setStage = useCallback((stage: string): void => {
+  const setStage = useCallback((stage: ChallengeStage): void => {
     tryCatch(() => {
       dispatch(setNodeState(stage));
     }, undefined, ErrorCode.NODE_STATE_ERROR);
@@ -241,10 +243,10 @@ export function useNode(): UseNodeReturn {
   const nextStage = useCallback((): boolean => {
     return tryCatch(() => {
       // Define the standard stage progression
-      const stages = ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
-      const currentIndex = stages.indexOf(interactionStage);
+      const stages: ChallengeStage[] = ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
+      const currentIndex = interactionStage ? stages.indexOf(interactionStage) : -1;
       
-      if (currentIndex < stages.length - 1) {
+      if (currentIndex >= 0 && currentIndex < stages.length - 1) {
         dispatch(setNodeState(stages[currentIndex + 1]));
         return true;
       }
@@ -261,8 +263,8 @@ export function useNode(): UseNodeReturn {
   const previousStage = useCallback((): boolean => {
     return tryCatch(() => {
       // Define the standard stage progression
-      const stages = ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
-      const currentIndex = stages.indexOf(interactionStage);
+      const stages: ChallengeStage[] = ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
+      const currentIndex = interactionStage ? stages.indexOf(interactionStage) : -1;
       
       if (currentIndex > 0) {
         dispatch(setNodeState(stages[currentIndex - 1]));
@@ -311,7 +313,7 @@ export function useNode(): UseNodeReturn {
     
     // Challenge-related state
     challengeId: currentChallengeId,
-    challengeState,
+    challengeStatus,
     
     // Node interaction methods
     interactWithNode,
