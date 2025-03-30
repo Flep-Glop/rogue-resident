@@ -22,7 +22,7 @@ import type { Character, GameCharacter, Difficulty } from '@/lib/types/game-type
 import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
-// Memoized selectors for better performance
+// Memoized selectors using the array pattern
 const selectGameState = createSelector(
   [(state: RootState) => state.game],
   (game) => ({

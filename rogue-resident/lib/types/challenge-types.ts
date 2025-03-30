@@ -71,6 +71,11 @@ export type ChallengeStage =
 export type ChallengeGrade = 'S' | 'A' | 'B' | 'C' | 'F';
 
 /**
+ * Challenge difficulty level (alias for game difficulty to ensure consistency)
+ */
+export type ChallengeDifficulty = Difficulty;
+
+/**
  * Base challenge interface
  */
 export interface Challenge {

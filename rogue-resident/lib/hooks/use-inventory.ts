@@ -56,7 +56,7 @@ function hasItemEffect(items: Item[], targetType: string, modifierType: string):
   );
 }
 
-// Create memoized selectors
+// Create memoized selectors using the array pattern
 const selectInventoryItems = createSelector(
   [(state: RootState) => state.inventory.items],
   (items) => items

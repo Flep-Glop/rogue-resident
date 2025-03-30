@@ -24,7 +24,7 @@ import type { Difficulty } from '@/lib/types/game-types';
 import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
-// Create memoized selectors for better performance
+// Create memoized selectors using the array pattern
 const selectNodeState = createSelector(
   [(state: RootState) => state.node],
   (node) => ({
@@ -51,7 +51,7 @@ const selectChallengeState = createSelector(
   [(state: RootState) => state.challenge],
   (challenge) => ({
     currentChallengeId: challenge.currentChallengeId,
-    challengeStatus: challenge.challengeStatus // Updated from challengeState
+    challengeStatus: challenge.challengeStatus // Using challengeStatus consistently
   })
 );
 
@@ -130,8 +130,6 @@ export function useNode(): UseNodeReturn {
   
   /**
    * Gets the full node data from map state if available
-   * 
-   * @returns The full node data or null if not found
    */
   const fullNodeData = useCallback((): MapNode | null => {
     return tryCatch(() => {

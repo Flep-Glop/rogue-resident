@@ -40,7 +40,7 @@ function calculateGrade(score: number, maxScore: number): ChallengeGrade {
   return 'F';
 }
 
-// Create memoized selectors
+// Create memoized selectors using the array pattern
 const selectChallengeState = createSelector(
   [(state: RootState) => state.challenge],
   (challenge) => ({
@@ -52,7 +52,7 @@ const selectChallengeState = createSelector(
     insightReward: challenge.insightReward,
     itemReward: challenge.itemReward,
     timeRemaining: challenge.timeRemaining,
-    challengeStatus: challenge.challengeStatus // Renamed from challengeState
+    challengeStatus: challenge.challengeStatus // Using challengeStatus for consistency
   })
 );
 

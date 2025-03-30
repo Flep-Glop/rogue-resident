@@ -16,17 +16,16 @@ import {
 } from '@/lib/redux/slices/save-load-slice';
 import type { SaveSlot } from '@/lib/types/game-types';
 import type { RootState } from '@/lib/types/redux-types';
-import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
+import { tryCatch, tryCatchAsync, ErrorCode } from '@/lib/utils/error-handlers';
 
-// Import the actual async thunks
-// Replace these imports with the correct imports from your save-load-slice
+// Import the actual async thunks - Replace with your actual imports
 import { 
   saveGame as saveGameThunk,
   loadGame as loadGameThunk, 
   deleteSave as deleteSaveThunk 
 } from '@/lib/redux/thunks/save-load-thunks';
 
-// Create memoized selectors
+// Create memoized selectors using the array pattern
 const selectSaveLoadStatus = createSelector(
   [(state: RootState) => state.saveLoad],
   (saveLoad) => ({
@@ -223,7 +222,7 @@ export function useSaveLoad(): UseSaveLoadReturn {
    * @returns Promise that resolves when the save is complete
    */
   const saveGame = useCallback((): Promise<void> => {
-    return tryCatch(async () => {
+    return tryCatchAsync(async () => {
       const resultAction = await dispatch(saveGameThunk());
       // Check if it's a rejected action
       if (saveGameThunk.rejected.match(resultAction)) {
@@ -238,7 +237,7 @@ export function useSaveLoad(): UseSaveLoadReturn {
    * @returns Promise that resolves when the load is complete
    */
   const loadGame = useCallback((): Promise<void> => {
-    return tryCatch(async () => {
+    return tryCatchAsync(async () => {
       const resultAction = await dispatch(loadGameThunk());
       // Check if it's a rejected action
       if (loadGameThunk.rejected.match(resultAction)) {
@@ -253,7 +252,7 @@ export function useSaveLoad(): UseSaveLoadReturn {
    * @returns Promise that resolves when the delete is complete
    */
   const deleteSave = useCallback((): Promise<void> => {
-    return tryCatch(async () => {
+    return tryCatchAsync(async () => {
       const resultAction = await dispatch(deleteSaveThunk());
       // Check if it's a rejected action
       if (deleteSaveThunk.rejected.match(resultAction)) {

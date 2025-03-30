@@ -16,7 +16,7 @@ import type { Difficulty } from '@/lib/types/game-types';
 import type { RootState } from '@/lib/types/redux-types';
 import { tryCatch, ErrorCode } from '@/lib/utils/error-handlers';
 
-// Create memoized selectors
+// Create memoized selectors using the array pattern
 const selectMapNodes = createSelector(
   [(state: RootState) => state.map.nodes],
   (nodes) => nodes
@@ -40,7 +40,10 @@ const selectMapInfo = createSelector(
 );
 
 const selectCurrentMapNode = createSelector(
-  [(state: RootState) => state.map.currentNodeId, (state: RootState) => state.map.nodes],
+  [
+    (state: RootState) => state.map.currentNodeId, 
+    (state: RootState) => state.map.nodes
+  ],
   (currentNodeId, nodes) => 
     currentNodeId ? nodes.find(node => node.id === currentNodeId) || null : null
 );
