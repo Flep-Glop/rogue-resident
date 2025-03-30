@@ -1,5 +1,8 @@
-import { Item, ItemEffect, EffectType } from '@/lib/types/item-types';
-import { tryCatch } from './error-handlers';
+// lib/utils/item-effects.ts
+'use client';
+
+import { Item, ItemEffect, EffectType } from '../types/item-types';
+import { tryCatch, ErrorCode } from './error-handlers';
 
 /**
  * Apply an item's effects to a game state
@@ -12,48 +15,56 @@ export function applyItemEffect(
   effect: ItemEffect,
   gameState: any
 ): Record<string, any> {
-  // Create an empty state update object
-  const stateUpdate: Record<string, any> = {};
-  
-  // Handle different effect types
-  switch (effect.type) {
-    // Character stat effects
-    case 'health':
-      stateUpdate.playerHealth = Math.min(
-        gameState.maxPlayerHealth,
-        gameState.playerHealth + Number(effect.value)
-      );
-      break;
-      
-    case 'maxHealth':
-      stateUpdate.maxPlayerHealth = gameState.maxPlayerHealth + Number(effect.value);
-      // Optionally also increase current health
-      if (Number(effect.value) > 0) {
-        stateUpdate.playerHealth = gameState.playerHealth + Number(effect.value);
-      }
-      break;
-      
-    case 'insight':
-      stateUpdate.playerInsight = gameState.playerInsight + Number(effect.value);
-      break;
+  return tryCatch(() => {
+    // Create an empty state update object
+    const stateUpdate: Record<string, any> = {};
     
-    // These effects are handled differently through the challenge system
-    case 'clinicalBonus':
-    case 'qaBonus':
-    case 'educationalBonus':
-    case 'revealAnswer':
-    case 'rerollChallenge':
-    case 'extraReward':
-    case 'nodeUnlock':
-    case 'dodgeFailure':
-      // These don't directly modify state but are checked during relevant actions
-      break;
+    // Handle different effect types
+    switch (effect.type) {
+      // Character stat effects
+      case 'health':
+        stateUpdate.playerHealth = Math.min(
+          gameState.maxPlayerHealth,
+          gameState.playerHealth + Number(effect.value)
+        );
+        break;
+        
+      case 'maxHealth':
+        stateUpdate.maxPlayerHealth = gameState.maxPlayerHealth + Number(effect.value);
+        // Optionally also increase current health
+        if (Number(effect.value) > 0) {
+          stateUpdate.playerHealth = gameState.playerHealth + Number(effect.value);
+        }
+        break;
+        
+      case 'insight':
+        stateUpdate.playerInsight = gameState.playerInsight + Number(effect.value);
+        break;
       
-    default:
-      console.warn(`Unknown effect type: ${effect.type}`);
-  }
-  
-  return stateUpdate;
+      // Challenge modifiers
+      case 'clinicalBonus':
+      case 'qaBonus':
+      case 'educationalBonus':
+        // These effects apply a percentage bonus to challenge performance
+        // They're applied during challenge evaluation, not directly to state
+        break;
+        
+      // Special abilities
+      case 'revealAnswer':
+      case 'rerollChallenge':
+      case 'extraReward':
+      case 'nodeUnlock':
+      case 'dodgeFailure':
+        // These are flags that grant special abilities
+        // They don't directly modify state but are checked during relevant actions
+        break;
+        
+      default:
+        console.warn(`Unknown effect type: ${effect.type}`);
+    }
+    
+    return stateUpdate;
+  }, {}, ErrorCode.ITEM_EFFECT_APPLICATION_ERROR);
 }
 
 /**
@@ -86,7 +97,7 @@ export function calculateTotalEffect(
       
       return total + effectSum;
     }, 0);
-  }, 0); // Return 0 if any error occurs
+  }, 0, ErrorCode.ITEM_EFFECT_CALCULATION_ERROR); // Return 0 if any error occurs
 }
 
 /**
@@ -111,7 +122,7 @@ export function hasEffect(
           Boolean(effect.value)
       )
     );
-  }, false); // Return false if any error occurs
+  }, false, ErrorCode.ITEM_EFFECT_CHECK_ERROR); // Return false if any error occurs
 }
 
 /**
@@ -139,7 +150,7 @@ export function getEffectsOfType(
     });
     
     return effects;
-  }, []); // Return empty array if any error occurs
+  }, [], ErrorCode.ITEM_EFFECT_RETRIEVAL_ERROR); // Return empty array if any error occurs
 }
 
 /**
@@ -163,18 +174,20 @@ export function processEffectDurations(
   value: number | string | boolean;
   turnsRemaining: number;
 }> {
-  return effects.filter(effect => {
-    // Skip permanent effects
-    if (effect.turnsRemaining === -1) {
-      return true;
-    }
-    
-    // Decrement duration for temporary effects
-    effect.turnsRemaining -= 1;
-    
-    // Keep effect if it still has turns remaining
-    return effect.turnsRemaining > 0;
-  });
+  return tryCatch(() => {
+    return effects.filter(effect => {
+      // Skip permanent effects
+      if (effect.turnsRemaining === -1) {
+        return true;
+      }
+      
+      // Decrement duration for temporary effects
+      effect.turnsRemaining -= 1;
+      
+      // Keep effect if it still has turns remaining
+      return effect.turnsRemaining > 0;
+    });
+  }, effects, ErrorCode.ITEM_EFFECT_DURATION_ERROR);
 }
 
 /**
@@ -184,13 +197,15 @@ export function processEffectDurations(
  * @returns Boolean indicating if effect should be auto-applied
  */
 export function isAutoAppliedEffect(effect: ItemEffect): boolean {
-  // Effects that are automatically applied when an item is acquired
-  const autoAppliedTypes: EffectType[] = [
-    'maxHealth',
-    'nodeUnlock'
-  ];
-  
-  return autoAppliedTypes.includes(effect.type);
+  return tryCatch(() => {
+    // Effects that are automatically applied when an item is acquired
+    const autoAppliedTypes: EffectType[] = [
+      'maxHealth',
+      'nodeUnlock'
+    ];
+    
+    return autoAppliedTypes.includes(effect.type);
+  }, false, ErrorCode.ITEM_EFFECT_CHECK_ERROR);
 }
 
 /**
@@ -200,19 +215,82 @@ export function isAutoAppliedEffect(effect: ItemEffect): boolean {
  * @returns Human-readable label
  */
 export function getEffectTypeLabel(type: EffectType): string {
-  const labels: Record<EffectType, string> = {
-    health: 'Health',
-    maxHealth: 'Maximum Health',
-    insight: 'Insight',
-    clinicalBonus: 'Clinical Challenge Bonus',
-    qaBonus: 'QA Challenge Bonus',
-    educationalBonus: 'Educational Challenge Bonus',
-    revealAnswer: 'Reveal Answer',
-    rerollChallenge: 'Reroll Challenge',
-    extraReward: 'Extra Reward',
-    nodeUnlock: 'Node Unlock',
-    dodgeFailure: 'Avoid Failure'
-  };
-  
-  return labels[type] || type;
+  return tryCatch(() => {
+    const labels: Record<EffectType, string> = {
+      health: 'Health',
+      maxHealth: 'Maximum Health',
+      insight: 'Insight',
+      clinicalBonus: 'Clinical Challenge Bonus',
+      qaBonus: 'QA Challenge Bonus',
+      educationalBonus: 'Educational Challenge Bonus',
+      revealAnswer: 'Reveal Answer',
+      rerollChallenge: 'Reroll Challenge',
+      extraReward: 'Extra Reward',
+      nodeUnlock: 'Node Unlock',
+      dodgeFailure: 'Avoid Failure'
+    };
+    
+    return labels[type] || String(type);
+  }, String(type), ErrorCode.UI_LABEL_ERROR);
+}
+
+/**
+ * Format an effect value for display
+ * 
+ * @param effect The effect to format
+ * @returns Formatted effect string
+ */
+export function formatEffectValue(effect: ItemEffect): string {
+  return tryCatch(() => {
+    const value = effect.value;
+    
+    // Handle different value types
+    if (typeof value === 'boolean') {
+      return value ? 'Yes' : 'No';
+    } else if (typeof value === 'number') {
+      // Check if it's a percentage effect
+      const isPercentage = [
+        'clinicalBonus',
+        'qaBonus',
+        'educationalBonus'
+      ].includes(effect.type);
+      
+      return isPercentage ? `${value > 0 ? '+' : ''}${value}%` : `${value > 0 ? '+' : ''}${value}`;
+    } else {
+      return String(value);
+    }
+  }, String(effect.value), ErrorCode.UI_FORMATTING_ERROR);
+}
+
+/**
+ * Get the CSS color class for an effect based on its type
+ * 
+ * @param effect The effect to get a color for
+ * @returns Tailwind color class
+ */
+export function getEffectColorClass(effect: ItemEffect): string {
+  return tryCatch(() => {
+    // Health-related effects
+    if (['health', 'maxHealth'].includes(effect.type)) {
+      return 'text-red-400';
+    }
+    
+    // Resource-related effects
+    if (['insight'].includes(effect.type)) {
+      return 'text-blue-400';
+    }
+    
+    // Challenge bonus effects
+    if (['clinicalBonus', 'qaBonus', 'educationalBonus'].includes(effect.type)) {
+      return 'text-yellow-400';
+    }
+    
+    // Special ability effects
+    if (['revealAnswer', 'rerollChallenge', 'extraReward', 'nodeUnlock', 'dodgeFailure'].includes(effect.type)) {
+      return 'text-purple-400';
+    }
+    
+    // Default
+    return 'text-slate-400';
+  }, 'text-slate-400', ErrorCode.UI_STYLE_ERROR);
 }

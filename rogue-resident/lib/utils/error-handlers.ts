@@ -2,26 +2,46 @@
 'use client';
 
 /**
- * Custom error class for game-related errors
+ * Error types for categorizing errors
  */
-export class GameError extends Error {
+export enum ErrorType {
+  UNKNOWN = 'unknown',
+  GAME = 'game',
+  MAP = 'map',
+  NODE = 'node',
+  CHALLENGE = 'challenge',
+  INVENTORY = 'inventory',
+  SAVE_LOAD = 'save_load',
+  TIMER = 'timer',
+  UI = 'ui'
+}
+
+/**
+ * Custom error class with additional context
+ */
+export class AppError extends Error {
   constructor(
     message: string,
-    public readonly code: ErrorCode,
+    public readonly type: ErrorType = ErrorType.UNKNOWN,
+    public readonly code?: string,
     public readonly context?: Record<string, any>
   ) {
     super(message);
-    this.name = 'GameError';
+    this.name = 'AppError';
+    
+    // Ensure proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, AppError.prototype);
   }
 }
 
 /**
- * Error codes for different categories of errors
+ * Error codes for specific error conditions
  */
 export enum ErrorCode {
   // General errors
   GENERAL_ERROR = 'GENERAL_ERROR',
   NOT_INITIALIZED = 'NOT_INITIALIZED',
+  INVALID_PARAMETER = 'INVALID_PARAMETER',
   SELECTOR_ERROR = 'SELECTOR_ERROR',
   
   // Game state errors
@@ -50,6 +70,12 @@ export enum ErrorCode {
   NODE_DATA_ERROR = 'NODE_DATA_ERROR',
   NODE_COMPLETION_ERROR = 'NODE_COMPLETION_ERROR',
   NODE_ACCESS_ERROR = 'NODE_ACCESS_ERROR',
+  NODE_TYPE_CHECK_ERROR = 'NODE_TYPE_CHECK_ERROR',
+  NODE_UNLOCK_ERROR = 'NODE_UNLOCK_ERROR',
+  NODE_STATUS_ERROR = 'NODE_STATUS_ERROR',
+  NODE_GENERATION_ERROR = 'NODE_GENERATION_ERROR',
+  NODE_PATH_ERROR = 'NODE_PATH_ERROR',
+  NODE_REWARD_CALCULATION_ERROR = 'NODE_REWARD_CALCULATION_ERROR',
   
   // Challenge errors
   CHALLENGE_ERROR = 'CHALLENGE_ERROR',
@@ -67,13 +93,26 @@ export enum ErrorCode {
   CHALLENGE_STAGE_ERROR = 'CHALLENGE_STAGE_ERROR',
   CHALLENGE_STATE_ERROR = 'CHALLENGE_STATE_ERROR',
   INVALID_CHALLENGE_STATE = 'INVALID_CHALLENGE_STATE',
+  CHALLENGE_REWARD_ERROR = 'CHALLENGE_REWARD_ERROR',
+  CHALLENGE_SETUP_ERROR = 'CHALLENGE_SETUP_ERROR',
   
   // Inventory errors
   INVENTORY_ERROR = 'INVENTORY_ERROR',
   INVENTORY_FULL = 'INVENTORY_FULL',
   ITEM_NOT_FOUND = 'ITEM_NOT_FOUND',
   ITEM_ALREADY_ACTIVE = 'ITEM_ALREADY_ACTIVE',
+  ITEM_ACTIVATION_ERROR = 'ITEM_ACTIVATION_ERROR',
+  ITEM_DEACTIVATION_ERROR = 'ITEM_DEACTIVATION_ERROR',
+  ITEM_USE_ERROR = 'ITEM_USE_ERROR',
   INSUFFICIENT_INSIGHT = 'INSUFFICIENT_INSIGHT',
+  
+  // Item effect errors
+  ITEM_EFFECT_APPLICATION_ERROR = 'ITEM_EFFECT_APPLICATION_ERROR',
+  ITEM_EFFECT_CALCULATION_ERROR = 'ITEM_EFFECT_CALCULATION_ERROR',
+  ITEM_EFFECT_CHECK_ERROR = 'ITEM_EFFECT_CHECK_ERROR',
+  ITEM_EFFECT_RETRIEVAL_ERROR = 'ITEM_EFFECT_RETRIEVAL_ERROR',
+  ITEM_EFFECT_DURATION_ERROR = 'ITEM_EFFECT_DURATION_ERROR',
+  ITEM_GENERATION_ERROR = 'ITEM_GENERATION_ERROR',
   
   // Save/Load errors
   SAVE_ERROR = 'SAVE_ERROR',
@@ -97,12 +136,112 @@ export enum ErrorCode {
   KEY_PRESS_ERROR = 'KEY_PRESS_ERROR',
   KEYBOARD_SHORTCUT_ERROR = 'KEYBOARD_SHORTCUT_ERROR',
   MEDIA_QUERY_ERROR = 'MEDIA_QUERY_ERROR',
+  UI_STYLE_ERROR = 'UI_STYLE_ERROR',
+  UI_LABEL_ERROR = 'UI_LABEL_ERROR',
+  UI_FORMATTING_ERROR = 'UI_FORMATTING_ERROR',
+  UI_ICON_ERROR = 'UI_ICON_ERROR',
+  
+  // ID generation errors
+  ID_GENERATION_ERROR = 'ID_GENERATION_ERROR',
   
   // Storage errors
   LOCAL_STORAGE_READ_ERROR = 'LOCAL_STORAGE_READ_ERROR',
   LOCAL_STORAGE_WRITE_ERROR = 'LOCAL_STORAGE_WRITE_ERROR',
   LOCAL_STORAGE_REMOVE_ERROR = 'LOCAL_STORAGE_REMOVE_ERROR'
 }
+
+/**
+ * Map error codes to error types
+ */
+const ERROR_CODE_TO_TYPE: Record<ErrorCode, ErrorType> = {
+  // General errors
+  [ErrorCode.GENERAL_ERROR]: ErrorType.UNKNOWN,
+  [ErrorCode.NOT_INITIALIZED]: ErrorType.UNKNOWN,
+  [ErrorCode.INVALID_PARAMETER]: ErrorType.UNKNOWN,
+  [ErrorCode.SELECTOR_ERROR]: ErrorType.UNKNOWN,
+  
+  // Game state errors
+  [ErrorCode.GAME_STATE_ERROR]: ErrorType.GAME,
+  [ErrorCode.INVALID_STATE_TRANSITION]: ErrorType.GAME,
+  [ErrorCode.GAME_ALREADY_STARTED]: ErrorType.GAME,
+  [ErrorCode.GAME_NOT_STARTED]: ErrorType.GAME,
+  [ErrorCode.INVALID_DIFFICULTY]: ErrorType.GAME,
+  [ErrorCode.CHARACTER_NOT_SELECTED]: ErrorType.GAME,
+  
+  // Map errors
+  [ErrorCode.MAP_ERROR]: ErrorType.MAP,
+  [ErrorCode.MAP_GENERATION_ERROR]: ErrorType.MAP,
+  [ErrorCode.MAP_NOT_GENERATED]: ErrorType.MAP,
+  [ErrorCode.MAP_RESET_ERROR]: ErrorType.MAP,
+  [ErrorCode.FLOOR_PROGRESSION_ERROR]: ErrorType.MAP,
+  
+  // Node errors
+  [ErrorCode.NODE_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_NOT_FOUND]: ErrorType.NODE,
+  [ErrorCode.NODE_UNAVAILABLE]: ErrorType.NODE,
+  [ErrorCode.NODE_ALREADY_COMPLETED]: ErrorType.NODE,
+  [ErrorCode.NODE_NAVIGATION_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_INTERACTION_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_STATE_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_DATA_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_COMPLETION_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_ACCESS_ERROR]: ErrorType.NODE,
+  
+  // Challenge errors
+  [ErrorCode.CHALLENGE_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_NOT_FOUND]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_ALREADY_ACTIVE]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_NOT_ACTIVE]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_START_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_NAVIGATION_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_RESPONSE_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_GRADING_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_COMPLETION_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_FAILURE_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_RESET_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_TIMER_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_STAGE_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_STATE_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.INVALID_CHALLENGE_STATE]: ErrorType.CHALLENGE,
+  
+  // Inventory errors
+  [ErrorCode.INVENTORY_ERROR]: ErrorType.INVENTORY,
+  [ErrorCode.INVENTORY_FULL]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_NOT_FOUND]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_ALREADY_ACTIVE]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_ACTIVATION_ERROR]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_DEACTIVATION_ERROR]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_USE_ERROR]: ErrorType.INVENTORY,
+  [ErrorCode.INSUFFICIENT_INSIGHT]: ErrorType.INVENTORY,
+  
+  // Save/Load errors
+  [ErrorCode.SAVE_ERROR]: ErrorType.SAVE_LOAD,
+  [ErrorCode.LOAD_ERROR]: ErrorType.SAVE_LOAD,
+  [ErrorCode.SAVE_NOT_FOUND]: ErrorType.SAVE_LOAD,
+  [ErrorCode.INVALID_SAVE_DATA]: ErrorType.SAVE_LOAD,
+  [ErrorCode.SAVE_LOAD_ERROR]: ErrorType.SAVE_LOAD,
+  [ErrorCode.DELETE_SAVE_ERROR]: ErrorType.SAVE_LOAD,
+  [ErrorCode.DATE_FORMAT_ERROR]: ErrorType.SAVE_LOAD,
+  
+  // Timer errors
+  [ErrorCode.TIMER_ERROR]: ErrorType.TIMER,
+  [ErrorCode.TIMER_START_ERROR]: ErrorType.TIMER,
+  [ErrorCode.TIMER_PAUSE_ERROR]: ErrorType.TIMER,
+  [ErrorCode.TIMER_RESET_ERROR]: ErrorType.TIMER,
+  [ErrorCode.INVALID_TIMER_STATE]: ErrorType.TIMER,
+  [ErrorCode.TIMER_ALREADY_RUNNING]: ErrorType.TIMER,
+  [ErrorCode.TIMER_NOT_RUNNING]: ErrorType.TIMER,
+  
+  // UI errors
+  [ErrorCode.KEY_PRESS_ERROR]: ErrorType.UI,
+  [ErrorCode.KEYBOARD_SHORTCUT_ERROR]: ErrorType.UI,
+  [ErrorCode.MEDIA_QUERY_ERROR]: ErrorType.UI,
+  
+  // Storage errors
+  [ErrorCode.LOCAL_STORAGE_READ_ERROR]: ErrorType.SAVE_LOAD,
+  [ErrorCode.LOCAL_STORAGE_WRITE_ERROR]: ErrorType.SAVE_LOAD,
+  [ErrorCode.LOCAL_STORAGE_REMOVE_ERROR]: ErrorType.SAVE_LOAD
+};
 
 /**
  * Utility function to safely execute a function and return a fallback value if it throws
@@ -165,4 +304,25 @@ export function logErrors<T>(fn: () => T, errorCode = ErrorCode.GENERAL_ERROR): 
     );
     throw error; // Re-throw the error after logging
   }
+}
+
+/**
+ * Report an error to the error tracking system
+ * @param error The error to report
+ * @param context Additional context for the error
+ */
+export function reportError(error: AppError | Error, context?: Record<string, any>): void {
+  // In a real app, this would send the error to an error tracking service
+  // For now, just log to console
+  console.error('[Rogue Resident] Error:', {
+    name: error.name,
+    message: error.message,
+    type: error instanceof AppError ? error.type : ErrorType.UNKNOWN,
+    code: error instanceof AppError ? error.code : undefined,
+    context: {
+      ...(error instanceof AppError ? error.context : {}),
+      ...context
+    },
+    stack: error.stack
+  });
 }

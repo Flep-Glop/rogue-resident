@@ -1,9 +1,11 @@
-import { NodeType, NodeStatus, MapNode } from '@/lib/types/node-types';
-import { ChallengeType, ChallengeGrade } from '@/lib/types/challenge-types';
-import { getRandomChallenge } from '@/lib/data/challenges';
-import { tryCatch } from './error-handlers';
+// lib/utils/node-interaction.ts
+'use client';
+
+import { NodeType, NodeStatus, MapNode } from '../types/node-types';
+import { ChallengeType, ChallengeGrade } from '../types/challenge-types';
+import { tryCatch, ErrorCode } from './error-handlers';
 import { calculateGrade, calculateInsightReward } from './game-utils';
-import { getNodeClasses } from './theme-utils';
+import { getNodeClasses, getNodeTypeIcon } from './theme-utils';
 
 /**
  * Map node types to their corresponding challenge types
@@ -43,6 +45,24 @@ export function getNodeInteractionInfo(node: MapNode): {
     // Get custom classes for this node type
     const customClasses = getNodeClasses(node.type, node.status);
     
+    // Get theme colors from CSS variables or fallback to defaults
+    let themeColors = {
+      primary: '#888',
+      secondary: '#AAA',
+      text: 'white'
+    };
+    
+    if (typeof window !== 'undefined') {
+      themeColors = {
+        primary: getComputedStyle(document.documentElement)
+          .getPropertyValue(`--${node.type}-primary`) || '#4A90E2',
+        secondary: getComputedStyle(document.documentElement)
+          .getPropertyValue(`--${node.type}-secondary`) || '#F4D03F',
+        text: getComputedStyle(document.documentElement)
+          .getPropertyValue(`--${node.type}-text`) || 'white'
+      };
+    }
+    
     return {
       title: node.title,
       description: node.description,
@@ -50,14 +70,7 @@ export function getNodeInteractionInfo(node: MapNode): {
       challengeType,
       availableStages,
       customClasses,
-      themeColors: {
-        primary: getComputedStyle(document.documentElement)
-          .getPropertyValue(`--${node.type}-primary`) || '#4A90E2',
-        secondary: getComputedStyle(document.documentElement)
-          .getPropertyValue(`--${node.type}-secondary`) || '#F4D03F',
-        text: getComputedStyle(document.documentElement)
-          .getPropertyValue(`--${node.type}-text`) || 'white'
-      }
+      themeColors
     };
   }, {
     title: node.title || 'Unknown Node',
@@ -67,7 +80,7 @@ export function getNodeInteractionInfo(node: MapNode): {
     availableStages: ['introduction', 'outcome'],
     customClasses: '',
     themeColors: { primary: '#888', secondary: '#AAA', text: 'white' }
-  });
+  }, ErrorCode.NODE_INTERACTION_ERROR);
 }
 
 /**
@@ -76,64 +89,27 @@ export function getNodeInteractionInfo(node: MapNode): {
  * @returns Array of stage IDs
  */
 export function getNodeStages(nodeType: NodeType): string[] {
-  switch (nodeType) {
-    case 'clinical':
-    case 'qa':
-    case 'educational':
-    case 'boss':
-      return ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
-      
-    case 'storage':
-      return ['introduction', 'discovery', 'acquisition'];
-      
-    case 'vendor':
-      return ['introduction', 'browsing', 'transaction'];
-      
-    case 'start':
-      return ['introduction', 'preparation'];
-      
-    default:
-      return ['introduction', 'outcome'];
-  }
-}
-
-/**
- * Get a challenge for a specific node
- * @param node The node to get a challenge for
- * @returns Challenge data or null if not applicable
- */
-export function getNodeChallenge(node: MapNode) {
   return tryCatch(() => {
-    const challengeType = NODE_TO_CHALLENGE_TYPE[node.type];
-    
-    if (!challengeType) {
-      return null;
+    switch (nodeType) {
+      case 'clinical':
+      case 'qa':
+      case 'educational':
+      case 'boss':
+        return ['introduction', 'stage1', 'stage2', 'stage3', 'outcome'];
+        
+      case 'storage':
+        return ['introduction', 'discovery', 'acquisition'];
+        
+      case 'vendor':
+        return ['introduction', 'browsing', 'transaction'];
+        
+      case 'start':
+        return ['introduction', 'preparation'];
+        
+      default:
+        return ['introduction', 'outcome'];
     }
-    
-    // If the node has a specific scenario ID, use that
-    if (node.scenarioId) {
-      // TODO: Implement retrieving a specific scenario
-      return { id: node.scenarioId, type: challengeType };
-    }
-    
-    // Otherwise, get a random challenge of the appropriate type and difficulty
-    const challenge = getRandomChallenge(challengeType, node.difficulty);
-    
-    if (!challenge) {
-      console.warn(`No challenges found for type ${challengeType} and difficulty ${node.difficulty}`);
-      return null;
-    }
-    
-    return {
-      id: challenge.id,
-      type: challengeType,
-      title: challenge.title,
-      description: challenge.description,
-      difficulty: challenge.difficulty,
-      totalStages: challenge.stages.length,
-      timeLimit: challenge.timeLimit
-    };
-  }, null);
+  }, ['introduction', 'outcome'], ErrorCode.NODE_STATE_ERROR);
 }
 
 /**
@@ -188,7 +164,7 @@ export function calculateNodeRewards(node: MapNode, grade: ChallengeGrade | null
     ];
     
     return rewards;
-  }, [{ type: 'insight', value: 10 }]);
+  }, [{ type: 'insight', value: 10 }], ErrorCode.NODE_REWARD_CALCULATION_ERROR);
 }
 
 /**
@@ -197,7 +173,9 @@ export function calculateNodeRewards(node: MapNode, grade: ChallengeGrade | null
  * @returns Whether the node can be interacted with
  */
 export function canInteractWithNode(node: MapNode): boolean {
-  return node.status === 'available' || node.status === 'current';
+  return tryCatch(() => {
+    return node.status === 'available' || node.status === 'current';
+  }, false, ErrorCode.NODE_ACCESS_ERROR);
 }
 
 /**
@@ -207,14 +185,16 @@ export function canInteractWithNode(node: MapNode): boolean {
  * @returns The next stage or null if at the end
  */
 export function getNextNodeStage(nodeType: NodeType, currentStage: string): string | null {
-  const stages = getNodeStages(nodeType);
-  const currentIndex = stages.indexOf(currentStage);
-  
-  if (currentIndex < 0 || currentIndex >= stages.length - 1) {
-    return null;
-  }
-  
-  return stages[currentIndex + 1];
+  return tryCatch(() => {
+    const stages = getNodeStages(nodeType);
+    const currentIndex = stages.indexOf(currentStage);
+    
+    if (currentIndex < 0 || currentIndex >= stages.length - 1) {
+      return null;
+    }
+    
+    return stages[currentIndex + 1];
+  }, null, ErrorCode.NODE_NAVIGATION_ERROR);
 }
 
 /**
@@ -224,14 +204,16 @@ export function getNextNodeStage(nodeType: NodeType, currentStage: string): stri
  * @returns The previous stage or null if at the beginning
  */
 export function getPreviousNodeStage(nodeType: NodeType, currentStage: string): string | null {
-  const stages = getNodeStages(nodeType);
-  const currentIndex = stages.indexOf(currentStage);
-  
-  if (currentIndex <= 0) {
-    return null;
-  }
-  
-  return stages[currentIndex - 1];
+  return tryCatch(() => {
+    const stages = getNodeStages(nodeType);
+    const currentIndex = stages.indexOf(currentStage);
+    
+    if (currentIndex <= 0) {
+      return null;
+    }
+    
+    return stages[currentIndex - 1];
+  }, null, ErrorCode.NODE_NAVIGATION_ERROR);
 }
 
 /**
@@ -240,7 +222,9 @@ export function getPreviousNodeStage(nodeType: NodeType, currentStage: string): 
  * @returns Whether the node is the boss node
  */
 export function isBossNode(node: MapNode): boolean {
-  return node.type === 'boss';
+  return tryCatch(() => {
+    return node.type === 'boss';
+  }, false, ErrorCode.NODE_TYPE_CHECK_ERROR);
 }
 
 /**
@@ -250,19 +234,21 @@ export function isBossNode(node: MapNode): boolean {
  * @returns Array of node IDs that should be unlocked
  */
 export function getNodesThatShouldUnlock(completedNodeId: string, nodes: MapNode[]): string[] {
-  // Find the completed node
-  const completedNode = nodes.find(node => node.id === completedNodeId);
-  
-  if (!completedNode) {
-    return [];
-  }
-  
-  // Find all currently locked nodes that are connected to the completed node
-  const lockedConnectedNodes = nodes.filter(node => 
-    node.status === 'locked' && completedNode.connections.includes(node.id)
-  );
-  
-  return lockedConnectedNodes.map(node => node.id);
+  return tryCatch(() => {
+    // Find the completed node
+    const completedNode = nodes.find(node => node.id === completedNodeId);
+    
+    if (!completedNode) {
+      return [];
+    }
+    
+    // Find all currently locked nodes that are connected to the completed node
+    const lockedConnectedNodes = nodes.filter(node => 
+      node.status === 'locked' && completedNode.connections.includes(node.id)
+    );
+    
+    return lockedConnectedNodes.map(node => node.id);
+  }, [], ErrorCode.NODE_UNLOCK_ERROR);
 }
 
 /**
@@ -271,42 +257,120 @@ export function getNodesThatShouldUnlock(completedNodeId: string, nodes: MapNode
  * @returns Human-readable status description
  */
 export function getNodeStatusText(status: NodeStatus): string {
-  switch (status) {
-    case 'locked':
-      return 'Locked';
-    case 'available':
-      return 'Available';
-    case 'current':
-      return 'Current';
-    case 'completed':
-      return 'Completed';
-    default:
-      return 'Unknown';
-  }
+  return tryCatch(() => {
+    switch (status) {
+      case 'locked':
+        return 'Locked';
+      case 'available':
+        return 'Available';
+      case 'current':
+        return 'Current';
+      case 'completed':
+        return 'Completed';
+      default:
+        return 'Unknown';
+    }
+  }, 'Unknown', ErrorCode.NODE_STATUS_ERROR);
 }
 
 /**
- * Get node icons for the map display
- * @param nodeType The node type
- * @returns Icon information
+ * Get display properties for a node based on type and status
+ * @param node The node to get display properties for
+ * @returns Node display properties
  */
-export function getNodeIcon(nodeType: NodeType): { name: string; color: string } {
-  switch (nodeType) {
-    case 'clinical':
-      return { name: 'medical-bag', color: '#4A90E2' };
-    case 'qa':
-      return { name: 'settings', color: '#5A6978' };
-    case 'educational':
-      return { name: 'school', color: '#26A69A' };
-    case 'storage':
-      return { name: 'package', color: '#D8CCA3' };
-    case 'vendor':
-      return { name: 'shopping-cart', color: '#2C3E50' };
-    case 'boss':
-      return { name: 'flash', color: '#4FC3F7' };
-    case 'start':
-      return { name: 'home', color: '#4CAF50' };
-    default:
-      return { name: 'help-circle', color: '#888888' };
-  }
+export function getNodeDisplayProperties(node: MapNode) {
+  return tryCatch(() => {
+    const iconName = getNodeTypeIcon(node.type);
+    let statusClass = '';
+    let borderWidth = 2;
+    
+    switch (node.status) {
+      case 'locked':
+        statusClass = 'opacity-50 grayscale cursor-not-allowed';
+        break;
+      case 'available':
+        statusClass = 'hover:shadow-lg hover:scale-105 cursor-pointer';
+        break;
+      case 'current':
+        statusClass = 'ring-4 ring-yellow-300 shadow-lg';
+        borderWidth = 2;
+        break;
+      case 'completed':
+        statusClass = 'opacity-75';
+        break;
+    }
+    
+    return {
+      iconName,
+      statusClass,
+      borderWidth,
+      classes: getNodeClasses(node.type, node.status),
+    };
+  }, {
+    iconName: 'CircleIcon',
+    statusClass: '',
+    borderWidth: 2,
+    classes: '',
+  }, ErrorCode.UI_STYLE_ERROR);
+}
+
+/**
+ * Get node difficulty based on floor level and position
+ * @param floorLevel Current floor level
+ * @param distanceFromStart Distance from start node (0-1)
+ * @returns Node difficulty level
+ */
+export function getNodeDifficulty(floorLevel: number, distanceFromStart: number): 'easy' | 'normal' | 'hard' {
+  return tryCatch(() => {
+    // Higher floors increase overall difficulty
+    const baseValue = (floorLevel - 1) * 0.2;
+    
+    // Nodes further from start tend to be more difficult
+    const difficultyValue = baseValue + (distanceFromStart * 0.8);
+    
+    if (difficultyValue < 0.3) return 'easy';
+    if (difficultyValue < 0.7) return 'normal';
+    return 'hard';
+  }, 'normal', ErrorCode.NODE_GENERATION_ERROR);
+}
+
+/**
+ * Check if a path exists between two nodes
+ * @param nodes All map nodes
+ * @param startNodeId The starting node ID
+ * @param endNodeId The target node ID
+ * @returns Whether a path exists between the nodes
+ */
+export function hasPathBetween(nodes: MapNode[], startNodeId: string, endNodeId: string): boolean {
+  return tryCatch(() => {
+    // Use breadth-first search to find a path
+    const visited = new Set<string>();
+    const queue: string[] = [startNodeId];
+    
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      
+      // Check if this is the target node
+      if (currentId === endNodeId) {
+        return true;
+      }
+      
+      // Mark as visited
+      visited.add(currentId);
+      
+      // Find this node
+      const currentNode = nodes.find(n => n.id === currentId);
+      if (currentNode) {
+        // Add unvisited connections to queue
+        currentNode.connections.forEach(connId => {
+          if (!visited.has(connId)) {
+            queue.push(connId);
+          }
+        });
+      }
+    }
+    
+    // No path found
+    return false;
+  }, false, ErrorCode.NODE_PATH_ERROR);
 }
