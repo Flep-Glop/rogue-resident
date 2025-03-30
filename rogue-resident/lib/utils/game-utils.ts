@@ -54,20 +54,20 @@ export function getRandomItemRarity(
     common: number, 
     uncommon: number, 
     rare: number, 
-    legendary: number 
+    unique: number 
   } = { 
     common: 0.6, 
     uncommon: 0.3, 
     rare: 0.08, 
-    legendary: 0.02 
+    unique: 0.02 
   }
 ): ItemRarity {
   return tryCatch(() => {
     const roll = Math.random();
     
-    if (roll < chances.legendary) return 'legendary';
-    if (roll < chances.legendary + chances.rare) return 'rare';
-    if (roll < chances.legendary + chances.rare + chances.uncommon) return 'uncommon';
+    if (roll < chances.unique) return 'unique';
+    if (roll < chances.unique + chances.rare) return 'rare';
+    if (roll < chances.unique + chances.rare + chances.uncommon) return 'uncommon';
     return 'common';
   }, 'common' as ItemRarity, ErrorCode.ITEM_GENERATION_ERROR);
 }
@@ -87,22 +87,22 @@ export function formatTime(seconds: number): string {
 }
 
 /**
- * Calculates the total effect value for a specific modifier from multiple items
+ * Calculates the total effect value for a specific type from multiple items
  * @param items Array of items with effects
  * @param targetType Type of target to calculate for
- * @param modifierType Type of modifier to calculate
+ * @param type Type of effect to calculate
  * @returns Total effect value
  */
 export function calculateTotalItemEffect(
   items: { effects: ItemEffect[] }[],
   targetType: string,
-  modifierType: string
+  type: string
 ): number {
   return tryCatch(() => {
     return items.reduce((total, item) => {
-      // Find effects that match the target and modifier type
+      // Find effects that match the target and type
       const matchingEffects = item.effects.filter(
-        effect => effect.target === targetType && effect.modifier === modifierType
+        effect => effect.target === targetType && effect.type === type
       );
       
       // Sum up the effect values
@@ -122,19 +122,19 @@ export function calculateTotalItemEffect(
  * Checks if the player has a specific effect from items
  * @param items Array of items with effects
  * @param targetType Type of target to check
- * @param modifierType Type of modifier to check
+ * @param type Type of effect to check
  * @returns Whether the effect exists
  */
 export function hasItemEffect(
   items: { effects: ItemEffect[] }[],
   targetType: string,
-  modifierType: string
+  type: string
 ): boolean {
   return tryCatch(() => {
     return items.some(item => 
       item.effects.some(effect => 
         effect.target === targetType && 
-        effect.modifier === modifierType &&
+        effect.type === type &&
         Boolean(effect.value)
       )
     );

@@ -1,4 +1,4 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
+import { configureStore, combineReducers, Middleware } from '@reduxjs/toolkit';
 import gameReducer from './slices/game-slice';
 import mapReducer from './slices/map-slice';
 import nodeReducer from './slices/node-slice';
@@ -19,7 +19,7 @@ const rootReducer = combineReducers({
 });
 
 // Error logging middleware
-const errorLoggingMiddleware = store => next => action => {
+const errorLoggingMiddleware: Middleware = store => next => action => {
   try {
     return next(action);
   } catch (error) {
@@ -61,7 +61,7 @@ function getErrorTypeFromAction(action: any): ErrorType {
 }
 
 // Root reducer with error handling
-const rootReducerWithErrorHandling = (state, action) => {
+const rootReducerWithErrorHandling = (state: any, action: any) => {
   try {
     return rootReducer(state, action);
   } catch (error) {
@@ -109,7 +109,7 @@ export const store = configureStore({
 if (process.env.NODE_ENV === 'development') {
   // Expose store in development for debugging
   if (typeof window !== 'undefined') {
-    window.__REDUX_STORE__ = store;
+    (window as any).__REDUX_STORE__ = store;
   }
 }
 

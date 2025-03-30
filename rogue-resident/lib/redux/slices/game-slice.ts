@@ -34,12 +34,28 @@ const defaultCharacters: Character[] = [
     startingInsight: 100,
     specialAbilities: [
       {
+        id: 'peer_review',
         name: 'Peer Review',
-        description: 'Once per floor, see the correct answer to any challenge.'
+        description: 'Once per floor, see the correct answer to any challenge.',
+        cooldown: 1,
+        currentCooldown: 0,
+        isAvailable: true,
+        effect: {
+          type: 'revealAnswer',
+          value: true
+        }
       },
       {
+        id: 'quick_study',
         name: 'Quick Study',
-        description: '+25% insight from first completion of each scenario type.'
+        description: '+25% insight from first completion of each scenario type.',
+        cooldown: 0,
+        currentCooldown: 0,
+        isAvailable: true,
+        effect: {
+          type: 'insightBonus',
+          value: 25
+        }
       }
     ],
     portrait: '/characters/resident.png'

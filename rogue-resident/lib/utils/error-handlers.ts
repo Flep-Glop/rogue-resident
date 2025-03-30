@@ -75,7 +75,6 @@ export enum ErrorCode {
   NODE_STATUS_ERROR = 'NODE_STATUS_ERROR',
   NODE_GENERATION_ERROR = 'NODE_GENERATION_ERROR',
   NODE_PATH_ERROR = 'NODE_PATH_ERROR',
-  NODE_REWARD_CALCULATION_ERROR = 'NODE_REWARD_CALCULATION_ERROR',
   
   // Challenge errors
   CHALLENGE_ERROR = 'CHALLENGE_ERROR',
@@ -147,7 +146,10 @@ export enum ErrorCode {
   // Storage errors
   LOCAL_STORAGE_READ_ERROR = 'LOCAL_STORAGE_READ_ERROR',
   LOCAL_STORAGE_WRITE_ERROR = 'LOCAL_STORAGE_WRITE_ERROR',
-  LOCAL_STORAGE_REMOVE_ERROR = 'LOCAL_STORAGE_REMOVE_ERROR'
+  LOCAL_STORAGE_REMOVE_ERROR = 'LOCAL_STORAGE_REMOVE_ERROR',
+
+  // Node reward calculation
+  NODE_REWARD_CALCULATION_ERROR = 'NODE_REWARD_CALCULATION_ERROR'
 }
 
 /**
@@ -186,6 +188,12 @@ const ERROR_CODE_TO_TYPE: Record<ErrorCode, ErrorType> = {
   [ErrorCode.NODE_DATA_ERROR]: ErrorType.NODE,
   [ErrorCode.NODE_COMPLETION_ERROR]: ErrorType.NODE,
   [ErrorCode.NODE_ACCESS_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_TYPE_CHECK_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_UNLOCK_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_STATUS_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_GENERATION_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_PATH_ERROR]: ErrorType.NODE,
+  [ErrorCode.NODE_REWARD_CALCULATION_ERROR]: ErrorType.NODE,
   
   // Challenge errors
   [ErrorCode.CHALLENGE_ERROR]: ErrorType.CHALLENGE,
@@ -203,6 +211,8 @@ const ERROR_CODE_TO_TYPE: Record<ErrorCode, ErrorType> = {
   [ErrorCode.CHALLENGE_STAGE_ERROR]: ErrorType.CHALLENGE,
   [ErrorCode.CHALLENGE_STATE_ERROR]: ErrorType.CHALLENGE,
   [ErrorCode.INVALID_CHALLENGE_STATE]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_REWARD_ERROR]: ErrorType.CHALLENGE,
+  [ErrorCode.CHALLENGE_SETUP_ERROR]: ErrorType.CHALLENGE,
   
   // Inventory errors
   [ErrorCode.INVENTORY_ERROR]: ErrorType.INVENTORY,
@@ -213,6 +223,14 @@ const ERROR_CODE_TO_TYPE: Record<ErrorCode, ErrorType> = {
   [ErrorCode.ITEM_DEACTIVATION_ERROR]: ErrorType.INVENTORY,
   [ErrorCode.ITEM_USE_ERROR]: ErrorType.INVENTORY,
   [ErrorCode.INSUFFICIENT_INSIGHT]: ErrorType.INVENTORY,
+  
+  // Item effect errors
+  [ErrorCode.ITEM_EFFECT_APPLICATION_ERROR]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_EFFECT_CALCULATION_ERROR]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_EFFECT_CHECK_ERROR]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_EFFECT_RETRIEVAL_ERROR]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_EFFECT_DURATION_ERROR]: ErrorType.INVENTORY,
+  [ErrorCode.ITEM_GENERATION_ERROR]: ErrorType.INVENTORY,
   
   // Save/Load errors
   [ErrorCode.SAVE_ERROR]: ErrorType.SAVE_LOAD,
@@ -236,6 +254,13 @@ const ERROR_CODE_TO_TYPE: Record<ErrorCode, ErrorType> = {
   [ErrorCode.KEY_PRESS_ERROR]: ErrorType.UI,
   [ErrorCode.KEYBOARD_SHORTCUT_ERROR]: ErrorType.UI,
   [ErrorCode.MEDIA_QUERY_ERROR]: ErrorType.UI,
+  [ErrorCode.UI_STYLE_ERROR]: ErrorType.UI,
+  [ErrorCode.UI_LABEL_ERROR]: ErrorType.UI,
+  [ErrorCode.UI_FORMATTING_ERROR]: ErrorType.UI,
+  [ErrorCode.UI_ICON_ERROR]: ErrorType.UI,
+  
+  // ID generation errors
+  [ErrorCode.ID_GENERATION_ERROR]: ErrorType.UNKNOWN,
   
   // Storage errors
   [ErrorCode.LOCAL_STORAGE_READ_ERROR]: ErrorType.SAVE_LOAD,

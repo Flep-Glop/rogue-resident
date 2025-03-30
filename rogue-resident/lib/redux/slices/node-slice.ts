@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../store';
-import { NodeType } from '@/lib/types/node-types';
+import { NodeType } from '@/lib/types/map-types';
 
 export interface NodeInteractionState {
   isInteracting: boolean;

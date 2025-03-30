@@ -5,9 +5,8 @@ import {
   MapNode, 
   MapEdge, 
   Difficulty, 
-  GeneratedMap, 
   MapGenerationOptions 
-} from '@/lib/types/node-types';
+} from '@/lib/types/map-types';
 
 export interface MapState {
   nodes: MapNode[];
@@ -37,7 +36,7 @@ export const mapSlice = createSlice({
   reducers: {
     generateNewMap: (state, action: PayloadAction<MapGenerationOptions>) => {
       const { difficulty, nodeCount } = action.payload;
-      const { nodes, edges, startNodeId, bossNodeId } = generateMap(difficulty, nodeCount);
+      const { nodes, edges, startNodeId, bossNodeId } = generateMap(difficulty, nodeCount || 15);
       
       state.nodes = nodes;
       state.edges = edges;

@@ -3,18 +3,11 @@ import type { RootState } from '../store';
 import { 
   ChallengeType, 
   ChallengeStage, 
-  ChallengeGrade 
+  ChallengeGrade,
+  ChallengeState,
+  ChallengeStageData
 } from '@/lib/types/challenge-types';
 import { Difficulty } from '@/lib/types/game-types';
-
-export interface ChallengeStageData {
-  id: string;
-  type: string;
-  content: any;
-  isCompleted: boolean;
-  userAnswer?: any;
-  correctAnswer?: any;
-}
 
 export interface ChallengeState {
   currentChallengeId: string | null;
@@ -29,7 +22,7 @@ export interface ChallengeState {
   insightReward: number;
   itemReward: string | null;
   timeRemaining: number | null; // For timed challenges
-  challengeState: 'inactive' | 'active' | 'completed' | 'failed';
+  challengeState: ChallengeState;
 }
 
 const initialState: ChallengeState = {
